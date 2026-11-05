@@ -1,10 +1,34 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.api.deps import get_user_service
+from app.api.deps import get_current_user, get_user_service
+from app.models.user import User
 from app.schemas.user import UserRead, UserUpdate
 from app.services.user_service import UserService
 
-router = APIRouter(prefix="/users", tags=["users"])
+router = APIRouter(
+    prefix="/users",
+    tags=["users"],
+    dependencies=[Depends(get_current_user)],
+)
+
+
+@router.get("/me", response_model=UserRead)
+async def read_me(current_user: User = Depends(get_current_user)):
+    return current_user
+
+
+@router.patch("/me", response_model=UserRead)
+async def update_me(
+    data: UserUpdate,
+    current_user: User = Depends(get_current_user),
+    service: UserService = Depends(get_user_service),
+):
+    user = await service.update_user(current_user.id, data)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
+    return user
 
 
 @router.get("", response_model=list[UserRead])
