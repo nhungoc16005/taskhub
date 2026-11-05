@@ -5,6 +5,7 @@ from app.models.workspace import Workspace, WorkspaceMember, WorkspaceRole
 from app.models.label import Label
 from app.models.task import Task, TaskStatus, TaskPriority
 from app.models.comment import Comment
+from app.models.refresh_token import RefreshToken
 
 __all__ = [
     "Base",
@@ -20,4 +21,5 @@ __all__ = [
     "TaskStatus",
     "TaskPriority",
     "Comment",
+    "RefreshToken",
 ]
