@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.api.deps import get_current_user, get_user_service
+from app.api.deps import get_current_user, get_user_service, get_auth_service
+from app.core.exceptions import InvalidPasswordError
 from app.models.user import User
-from app.schemas.user import UserRead, UserUpdate
+from app.schemas.user import UserRead, UserUpdate, ChangePasswordRequest
+from app.services.auth_service import AuthService
 from app.services.user_service import UserService
 
 router = APIRouter(
@@ -62,6 +64,20 @@ async def update_user(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
     return user
+
+
+@router.post("/me/change-password", status_code=status.HTTP_204_NO_CONTENT)
+async def change_password(
+    data: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    service: AuthService = Depends(get_auth_service),
+):
+    try:
+        await service.change_password(
+            current_user, data.current_password, data.new_password
+        )
+    except InvalidPasswordError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)

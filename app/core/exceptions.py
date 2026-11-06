@@ -8,3 +8,7 @@ class InactiveUserError(Exception):
 
 class InvalidTokenError(Exception):
     """Refresh token sai, hết hạn hoặc đã bị thu hồi."""
+
+
+class InvalidPasswordError(Exception):
+    """Mật khẩu hiện tại sai, hoặc mật khẩu mới không hợp lệ."""

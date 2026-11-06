@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from app.core.exceptions import (
     InactiveUserError,
     InvalidCredentialsError,
+    InvalidPasswordError,
     InvalidTokenError,
 )
 from app.core.security import (
@@ -12,6 +13,7 @@ from app.core.security import (
     create_access_token,
     create_refresh_token,
     decode_token,
+    hash_password,
     verify_password,
 )
 from app.models.refresh_token import RefreshToken
@@ -100,3 +102,18 @@ class AuthService:
         if record is None or record.revoked_at is not None or record.expires_at <= now:
             raise InvalidTokenError("Invalid refresh token")
         return record
+
+    async def change_password(
+        self, user: User, current_password: str, new_password: str
+    ) -> None:
+        if not verify_password(current_password, user.hashed_password):
+            raise InvalidPasswordError("Current password is incorrect")
+        if verify_password(new_password, user.hashed_password):
+            raise InvalidPasswordError(
+                "New password must be different from the current password"
+            )
+
+        await self.user_repo.update(
+            user, {"hashed_password": hash_password(new_password)}
+        )
+        await self.token_repo.revoke_all_for_user(user.id)
