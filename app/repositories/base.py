@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.base import Base
+from sqlalchemy.exc import IntegrityError
 
 ModelT = TypeVar("ModelT", bound=Base)
 
@@ -30,7 +31,11 @@ class BaseRepository(Generic[ModelT]):
     async def create(self, data: dict) -> ModelT:
         obj = self.model(**data)
         self.session.add(obj)
-        await self.session.commit()
+        try:
+            await self.session.commit()
+        except IntegrityError:
+            await self.session.rollback()
+            raise
         await self.session.refresh(obj)
         return obj
 
