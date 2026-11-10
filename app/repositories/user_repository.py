@@ -34,3 +34,6 @@ class UserRepository:
             del self._db[user_id]
             return True
         return False
+
+    def count(self) -> int:
+        return len(self._db)
