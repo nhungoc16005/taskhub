@@ -1,7 +1,7 @@
 from typing import Annotated, Generic, TypeVar
 
 from pydantic import BaseModel, EmailStr, Field, StringConstraints, field_validator
-
+from pydantic import ConfigDict
 from app.core.constants import (
     EMAIL_MAX_LENGTH,
     FULL_NAME_MAX_LENGTH,
@@ -50,6 +50,7 @@ class UserRead(BaseModel):
     id: int
     email: EmailStr
     full_name: str
+    model_config = ConfigDict(from_attributes=True)
 
 
 T = TypeVar("T")
