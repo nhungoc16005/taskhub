@@ -48,4 +48,8 @@ class BaseRepository(Generic[ModelT]):
 
     async def delete(self, obj: ModelT) -> None:
         await self.session.delete(obj)
-        await self.session.commit()
+        try:
+            await self.session.commit()
+        except IntegrityError:
+            await self.session.rollback()
+            raise

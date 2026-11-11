@@ -1,6 +1,10 @@
 from sqlalchemy.exc import IntegrityError
 
-from app.core.exceptions import EmailAlreadyExistsError, UserNotFoundError
+from app.core.exceptions import (
+    EmailAlreadyExistsError,
+    UserInUseError,
+    UserNotFoundError,
+)
 from app.core.security import hash_password
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
@@ -45,4 +49,8 @@ class UserService:
 
     async def delete_user(self, user_id: int) -> None:
         user = await self.get_user(user_id)
-        await self.repo.delete(user)
+        try:
+            await self.repo.delete(user)
+        except IntegrityError:
+            # user còn workspace/task tham chiếu tới -> vi phạm FK
+            raise UserInUseError()
