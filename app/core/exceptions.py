@@ -55,3 +55,25 @@ class ForbiddenError(AppError):
 class InvalidPasswordError(AppError):
     status_code = 400
     message = messages.CURRENT_PASSWORD_INCORRECT
+
+
+class WorkspaceNotFoundError(NotFoundError):
+    message = messages.WORKSPACE_NOT_FOUND
+
+
+class ProjectNotFoundError(NotFoundError):
+    message = messages.PROJECT_NOT_FOUND
+
+
+class MemberNotFoundError(NotFoundError):
+    message = messages.MEMBER_NOT_FOUND
+
+
+class AlreadyMemberError(AppError):
+    status_code = 409
+    message = messages.ALREADY_MEMBER
+
+
+class CannotRemoveOwnerError(AppError):
+    status_code = 400
+    message = messages.CANNOT_REMOVE_OWNER

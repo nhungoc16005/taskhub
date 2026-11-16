@@ -1,4 +1,5 @@
-from typing import Annotated, Generic, TypeVar
+from typing import Annotated
+
 
 from pydantic import (
     AfterValidator,
@@ -18,6 +19,7 @@ from app.core.constants import (
     PASSWORD_MIN_LENGTH,
 )
 from app.models.user import UserRole
+from app.schemas.common import Page
 
 FullName = Annotated[
     str,
@@ -74,13 +76,3 @@ class UserRead(BaseModel):
     full_name: str
     role: UserRole
     is_active: bool
-
-
-T = TypeVar("T")
-
-
-class Page(BaseModel, Generic[T]):
-    items: list[T]
-    total: int
-    skip: int
-    limit: int

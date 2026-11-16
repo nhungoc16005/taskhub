@@ -16,3 +16,10 @@ PERMISSION_DENIED = "You do not have permission to perform this action"
 TOKEN_EXPIRED = "Token has expired"
 TOKEN_INVALID = "Invalid token"
 TOKEN_WRONG_TYPE = "Wrong token type"
+
+
+WORKSPACE_NOT_FOUND = "Workspace not found"
+PROJECT_NOT_FOUND = "Project not found"
+MEMBER_NOT_FOUND = "Member not found"
+ALREADY_MEMBER = "User is already a member of this workspace"
+CANNOT_REMOVE_OWNER = "The workspace owner cannot be removed"
