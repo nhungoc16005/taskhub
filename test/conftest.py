@@ -4,6 +4,8 @@ os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite://")
 os.environ.setdefault("SECRET_KEY", "test-secret-key-test-secret-key-1234567890")
 
 import pytest_asyncio  # noqa: E402
+import bcrypt
+import pytest
 from httpx import ASGITransport, AsyncClient  # noqa: E402
 from sqlalchemy import event, update  # noqa: E402
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine  # noqa: E402
@@ -14,6 +16,13 @@ from app.main import app  # noqa: E402
 from app.models import Base, User, UserRole  # noqa: E402
 
 PASSWORD = "12345678"
+
+
+@pytest.fixture(autouse=True)
+def fast_bcrypt(monkeypatch):
+    """bcrypt mặc định cố tình chậm (12 vòng). Test chỉ cần 4 vòng cho nhanh."""
+    real_gensalt = bcrypt.gensalt
+    monkeypatch.setattr(bcrypt, "gensalt", lambda: real_gensalt(rounds=4))
 
 
 @pytest_asyncio.fixture
@@ -93,3 +102,29 @@ async def make_user(register, login, session_factory):
 
 def bearer(tokens: dict) -> dict:
     return {"Authorization": f"Bearer {tokens['access_token']}"}
+
+
+@pytest_asyncio.fixture
+async def create_workspace(client):
+    async def _create(tokens: dict, name: str = "WS"):
+        return await client.post(
+            "/api/v1/workspaces", headers=bearer(tokens), json={"name": name}
+        )
+
+    return _create
+
+
+@pytest_asyncio.fixture
+async def invite(client):
+    """Owner mời user (theo email) vào workspace với role cho trước."""
+
+    async def _invite(
+        owner_tokens: dict, workspace_id: int, email: str, role: str = "VIEWER"
+    ):
+        return await client.post(
+            f"/api/v1/workspaces/{workspace_id}/members",
+            headers=bearer(owner_tokens),
+            json={"email": email, "role": role},
+        )
+
+    return _invite
