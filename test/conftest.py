@@ -4,8 +4,8 @@ os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite://")
 os.environ.setdefault("SECRET_KEY", "test-secret-key-test-secret-key-1234567890")
 
 import pytest_asyncio  # noqa: E402
-import bcrypt
 import pytest
+import bcrypt
 from httpx import ASGITransport, AsyncClient  # noqa: E402
 from sqlalchemy import event, update  # noqa: E402
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine  # noqa: E402
@@ -20,9 +20,23 @@ PASSWORD = "12345678"
 
 @pytest.fixture(autouse=True)
 def fast_bcrypt(monkeypatch):
-    """bcrypt mặc định cố tình chậm (12 vòng). Test chỉ cần 4 vòng cho nhanh."""
-    real_gensalt = bcrypt.gensalt
-    monkeypatch.setattr(bcrypt, "gensalt", lambda: real_gensalt(rounds=4))
+    original = bcrypt.gensalt
+    monkeypatch.setattr(bcrypt, "gensalt", lambda: original(rounds=4))
+
+
+@pytest_asyncio.fixture
+async def team(client, make_user):
+    people = {}
+    for role in ("owner", "editor", "viewer", "outsider", "admin"):
+        user, tokens = await make_user(email=f"{role}@example.com", admin=role == "admin")
+        people[role] = dict(user=user, headers=bearer(tokens))
+    owner = people["owner"]["headers"]
+    workspace = (await client.post("/api/v1/workspaces", json={"name": "Team"}, headers=owner)).json()
+    for role in ("editor", "viewer"):
+        response = await client.post(f"/api/v1/workspaces/{workspace['id']}/members", json={"email": people[role]["user"]["email"], "role": role.upper()}, headers=owner)
+        assert response.status_code == 201
+    project = (await client.post(f"/api/v1/workspaces/{workspace['id']}/projects", json={"name": "Project"}, headers=owner)).json()
+    return dict(people=people, workspace=workspace, project=project)
 
 
 @pytest_asyncio.fixture

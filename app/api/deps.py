@@ -6,16 +6,24 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.exceptions import ForbiddenError
+from app.models.label import Label
 from app.models.project import Project
+from app.models.task import Task
 from app.models.user import User, UserRole
 from app.models.workspace import Workspace, WorkspaceRole
+from app.repositories.comment_repository import CommentRepository
+from app.repositories.label_repository import LabelRepository
 from app.repositories.project_repository import ProjectRepository
 from app.repositories.refresh_token_repository import RefreshTokenRepository
+from app.repositories.task_repository import TaskRepository
 from app.repositories.user_repository import UserRepository
 from app.repositories.workspace_member_repository import WorkspaceMemberRepository
 from app.repositories.workspace_repository import WorkspaceRepository
 from app.services.auth_service import AuthService
+from app.services.comment_service import CommentService
+from app.services.label_service import LabelService
 from app.services.project_service import ProjectService
+from app.services.task_service import TaskService
 from app.services.user_service import UserService
 from app.services.workspace_service import WorkspaceService
 
@@ -131,3 +139,61 @@ EditableProject = Annotated[
     Project, Depends(require_project_role(WorkspaceRole.EDITOR))
 ]
 OwnedProject = Annotated[Project, Depends(require_project_role(WorkspaceRole.OWNER))]
+
+
+# ---------- Task / Label / Comment (quyền theo workspace chứa project) ----------
+
+
+def get_task_service(
+    db: DbSession,
+    project_service: ProjectServiceDep,
+    workspace_service: WorkspaceServiceDep,
+) -> TaskService:
+    return TaskService(TaskRepository(db), project_service, workspace_service)
+
+
+TaskServiceDep = Annotated[TaskService, Depends(get_task_service)]
+
+
+def get_label_service(
+    db: DbSession, project_service: ProjectServiceDep
+) -> LabelService:
+    return LabelService(LabelRepository(db), project_service)
+
+
+LabelServiceDep = Annotated[LabelService, Depends(get_label_service)]
+
+
+def get_comment_service(db: DbSession, task_service: TaskServiceDep) -> CommentService:
+    return CommentService(CommentRepository(db), task_service)
+
+
+CommentServiceDep = Annotated[CommentService, Depends(get_comment_service)]
+
+
+def require_task_role(required: WorkspaceRole):
+    """Tạo dependency: đọc `task_id` từ path và kiểm tra quyền trong workspace chứa task."""
+
+    async def dependency(
+        task_id: int, user: CurrentUser, service: TaskServiceDep
+    ) -> Task:
+        return await service.get_with_role(user, task_id, required)
+
+    return dependency
+
+
+def require_label_role(required: WorkspaceRole):
+    """Tạo dependency: đọc `label_id` từ path và kiểm tra quyền trong workspace chứa label."""
+
+    async def dependency(
+        label_id: int, user: CurrentUser, service: LabelServiceDep
+    ) -> Label:
+        return await service.get_with_role(user, label_id, required)
+
+    return dependency
+
+
+ViewableTask = Annotated[Task, Depends(require_task_role(WorkspaceRole.VIEWER))]
+EditableTask = Annotated[Task, Depends(require_task_role(WorkspaceRole.EDITOR))]
+
+EditableLabel = Annotated[Label, Depends(require_label_role(WorkspaceRole.EDITOR))]

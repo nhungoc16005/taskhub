@@ -14,7 +14,7 @@ from app.models.workspace import Workspace, WorkspaceMember, WorkspaceRole
 from app.repositories.user_repository import UserRepository
 from app.repositories.workspace_member_repository import WorkspaceMemberRepository
 from app.repositories.workspace_repository import WorkspaceRepository
-from app.schemas.workspace import MemberInvite, WorkspaceCreate, WorkspaceUpdate
+from app.schemas.workspace import MemberInvite, MemberUpdate, WorkspaceCreate, WorkspaceUpdate
 
 
 class WorkspaceService:
@@ -90,3 +90,13 @@ class WorkspaceService:
         if member is None:
             raise MemberNotFoundError()
         await self.member_repo.remove(member)
+
+    async def update_member(
+        self, workspace: Workspace, user_id: int, data: MemberUpdate
+    ) -> WorkspaceMember:
+        if user_id == workspace.owner_id:
+            raise CannotRemoveOwnerError()
+        member = await self.member_repo.get(workspace.id, user_id)
+        if member is None:
+            raise MemberNotFoundError()
+        return await self.member_repo.update_role(member, data.role)
