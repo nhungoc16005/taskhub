@@ -60,7 +60,8 @@ Chưa kiểm thử tích hợp với PostgreSQL thật.
 - Actual work: chưa có số giờ/giờ bắt đầu và kết thúc do người dùng xác nhận.
 - Task hoàn thành: các mục Day 4 và Day 5 ở trên.
 - Day 4 PR: https://github.com/nhungoc16005/taskhub/pull/5.
-- Day 5: nhánh `feature/day5-tasks`, PR dựa trên `feature/day4-rbac`.
+- Day 5: nhánh `feature/day5-tasks`, PR https://github.com/nhungoc16005/taskhub/pull/6,
+  dựa trên `feature/day4-rbac`.
 - Tomorrow plan: review/merge Day 4 trước, đổi base Day 5 về main sau khi
   Day 4 được merge; xác nhận quy ước phân trang với thầy.
 - Khó khăn đã xử lý: Day 5 thiếu nền Day 4; sandbox chặn Python gốc nên
