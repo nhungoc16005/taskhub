@@ -47,3 +47,7 @@ class MemberRead(BaseModel):
 
     user_id: int
     role: WorkspaceRole
+
+
+class MemberUpdate(BaseModel):
+    role: Literal[WorkspaceRole.EDITOR, WorkspaceRole.VIEWER]

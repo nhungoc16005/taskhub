@@ -13,6 +13,7 @@ from app.schemas.common import Page
 from app.schemas.workspace import (
     MemberInvite,
     MemberRead,
+    MemberUpdate,
     WorkspaceCreate,
     WorkspaceRead,
     WorkspaceUpdate,
@@ -81,3 +82,13 @@ async def remove_member(
     user_id: int, workspace: OwnedWorkspace, service: WorkspaceServiceDep
 ):
     await service.remove_member(workspace, user_id)
+
+
+@router.patch("/{workspace_id}/members/{user_id}", response_model=MemberRead)
+async def update_member(
+    user_id: int,
+    data: MemberUpdate,
+    workspace: OwnedWorkspace,
+    service: WorkspaceServiceDep,
+):
+    return await service.update_member(workspace, user_id, data)

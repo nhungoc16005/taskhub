@@ -77,3 +77,34 @@ class AlreadyMemberError(AppError):
 class CannotRemoveOwnerError(AppError):
     status_code = 400
     message = messages.CANNOT_REMOVE_OWNER
+
+
+class TaskNotFoundError(NotFoundError):
+    message = messages.TASK_NOT_FOUND
+
+
+class LabelNotFoundError(NotFoundError):
+    message = messages.LABEL_NOT_FOUND
+
+
+class CommentNotFoundError(NotFoundError):
+    message = messages.COMMENT_NOT_FOUND
+
+
+class AssigneeNotMemberError(AppError):
+    status_code = 400
+    message = messages.ASSIGNEE_NOT_MEMBER
+
+
+class ProjectArchivedError(AppError):
+    status_code = 409
+    message = messages.PROJECT_ARCHIVED
+
+
+class LabelAlreadyAttachedError(AppError):
+    status_code = 409
+    message = messages.LABEL_ALREADY_ATTACHED
+
+
+class LabelNotAttachedError(NotFoundError):
+    message = messages.LABEL_NOT_ATTACHED
