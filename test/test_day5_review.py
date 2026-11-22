@@ -1,16 +1,16 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from sqlalchemy.exc import IntegrityError
+from test_day5 import create_task
 
 from app.core import messages
+from app.main import app
 from app.models.task import Task
 from app.models.workspace import WorkspaceMember
 from app.repositories.label_repository import LabelRepository
 from app.repositories.project_repository import ProjectRepository
 from app.repositories.workspace_member_repository import WorkspaceMemberRepository
-from app.main import app
-from test_day5 import create_task
 
 
 async def test_demoted_author_cannot_delete_task_or_comment(client, team):
@@ -113,7 +113,7 @@ async def test_task_multivalue_filters_and_invalid_assignees(client, team):
         assert (await client.post(path, headers=headers, json={"title": "Bad", "assignee_id": value})).status_code == 422
         assert (await client.patch(f"/api/v1/tasks/{first['id']}", headers=headers,
                                   json={"assignee_id": value})).status_code == 422
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(UTC).date()
     assert (await client.post(path, headers=headers, json={"title": "Past", "due_date": str(today - timedelta(days=1))})).status_code == 422
     assert (await client.post(path, headers=headers, json={"title": "Today", "due_date": str(today)})).status_code == 201
 

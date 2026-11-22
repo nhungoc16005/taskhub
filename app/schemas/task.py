@@ -1,11 +1,11 @@
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field, PositiveInt, field_validator
 
 from app.core.constants import DESCRIPTION_MAX_LENGTH
 from app.core.enums import TaskPriority, TaskStatus
-from app.schemas.common import NameStr, NonNull
 from app.core.messages import DUE_DATE_IN_PAST
+from app.schemas.common import NameStr, NonNull
 
 
 class TaskCreate(BaseModel):
@@ -20,7 +20,7 @@ class TaskCreate(BaseModel):
     @classmethod
     def due_date_not_in_past(cls, value: date | None) -> date | None:
         # Date-only API uses UTC consistently, independent of server timezone.
-        if value is not None and value < datetime.now(timezone.utc).date():
+        if value is not None and value < datetime.now(UTC).date():
             raise ValueError(DUE_DATE_IN_PAST)
         return value
 

@@ -8,9 +8,9 @@ from app.core.enums import ProjectStatus
 from app.models.base import Base
 
 if TYPE_CHECKING:
-    from app.models.workspace import Workspace
-    from app.models.task import Task
     from app.models.label import Label
+    from app.models.task import Task
+    from app.models.workspace import Workspace
 
 
 class Project(Base):
