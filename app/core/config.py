@@ -1,12 +1,24 @@
+from typing import Literal
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from app.core.constants import SECRET_KEY_MIN_LENGTH
+from app.core.constants import (
+    DEFAULT_CACHE_TTL_SECONDS,
+    DEFAULT_LOG_LEVEL,
+    DEFAULT_REDIS_URL,
+    SECRET_KEY_MIN_LENGTH,
+)
 
 
 class Settings(BaseSettings):
     DATABASE_URL: str
     DB_ECHO: bool = False
+    REDIS_URL: str = DEFAULT_REDIS_URL
+    CACHE_TTL_SECONDS: int = Field(DEFAULT_CACHE_TTL_SECONDS, ge=1)
+    LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = (
+        DEFAULT_LOG_LEVEL
+    )
 
     SECRET_KEY: str = Field(min_length=SECRET_KEY_MIN_LENGTH)
     ALGORITHM: str = "HS256"

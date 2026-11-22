@@ -1,9 +1,10 @@
 from sqlalchemy.exc import IntegrityError
 
+from app.core.cache import TaskCache
 from app.core.exceptions import (
     AlreadyMemberError,
-    CannotRemoveOwnerError,
     CannotDemoteOwnerError,
+    CannotRemoveOwnerError,
     ForbiddenError,
     MemberNotFoundError,
     UserNotFoundError,
@@ -13,12 +14,17 @@ from app.core.permissions import has_workspace_role
 from app.models.user import User, UserRole
 from app.models.workspace import Workspace, WorkspaceMember, WorkspaceRole
 from app.repositories.task_repository import TaskRepository
-from app.services.transaction import transaction
 from app.repositories.user_repository import UserRepository
 from app.repositories.workspace_member_repository import WorkspaceMemberRepository
 from app.repositories.workspace_repository import WorkspaceRepository
 from app.schemas.common import Page, Pagination
-from app.schemas.workspace import MemberInvite, MemberUpdate, WorkspaceCreate, WorkspaceUpdate
+from app.schemas.workspace import (
+    MemberInvite,
+    MemberUpdate,
+    WorkspaceCreate,
+    WorkspaceUpdate,
+)
+from app.services.transaction import transaction
 
 
 class WorkspaceService:
@@ -28,11 +34,13 @@ class WorkspaceService:
         member_repo: WorkspaceMemberRepository,
         user_repo: UserRepository,
         task_repo: TaskRepository,
+        cache: TaskCache,
     ):
         self.repo = repo
         self.member_repo = member_repo
         self.user_repo = user_repo
         self.task_repo = task_repo
+        self.cache = cache
 
     async def get_with_role(
         self, user: User, workspace_id: int, required: WorkspaceRole
@@ -101,8 +109,12 @@ class WorkspaceService:
         if member is None:
             raise MemberNotFoundError()
         async with transaction(self.member_repo.session):
-            await self.task_repo.unassign_in_workspace(workspace.id, user_id)
+            project_ids = await self.task_repo.unassign_in_workspace(
+                workspace.id, user_id
+            )
             await self.member_repo.remove(member)
+        for project_id in project_ids:
+            await self.cache.invalidate(project_id)
 
     async def update_member(
         self, workspace: Workspace, user_id: int, data: MemberUpdate

@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, BackgroundTasks, Query, status
 
 from app.api.deps import (
     CurrentUser,
@@ -28,11 +28,12 @@ router = APIRouter(tags=["tasks"], responses=RESOURCE_RESPONSES)
 )
 async def create_task(
     data: TaskCreate,
+    background_tasks: BackgroundTasks,
     project: EditableProject,
     current_user: CurrentUser,
     service: TaskServiceDep,
 ) -> Task:
-    return await service.create(current_user, project, data)
+    return await service.create(current_user, project, data, background_tasks)
 
 
 @router.get(
@@ -45,7 +46,7 @@ async def list_tasks(
     task_status: Annotated[list[TaskStatus] | None, Query(alias="status")] = None,
     priority: Annotated[list[TaskPriority] | None, Query()] = None,
     assignee_id: Annotated[int | None, Query(ge=1)] = None,
-) -> Page[Task]:
+) -> Page[TaskRead]:
     return await service.list_by_project(
         project, pagination, task_status, priority, assignee_id
     )
@@ -58,9 +59,13 @@ async def get_task(task: ViewableTask) -> Task:
 
 @router.patch("/tasks/{task_id}", response_model=TaskRead, summary="Update task")
 async def update_task(
-    data: TaskUpdate, task: EditableTask, service: TaskServiceDep
+    data: TaskUpdate,
+    task: EditableTask,
+    service: TaskServiceDep,
+    current_user: CurrentUser,
+    background_tasks: BackgroundTasks,
 ) -> Task:
-    return await service.update(task, data)
+    return await service.update(task, data, current_user, background_tasks)
 
 
 @router.delete(

@@ -3,19 +3,33 @@ import os
 os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite://")
 os.environ.setdefault("SECRET_KEY", "test-secret-key-test-secret-key-1234567890")
 
-import pytest_asyncio  # noqa: E402
-import pytest
 import bcrypt
-from httpx import ASGITransport, AsyncClient  # noqa: E402
-from sqlalchemy import event, update  # noqa: E402
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine  # noqa: E402
-from sqlalchemy.pool import StaticPool  # noqa: E402
+import pytest
+import pytest_asyncio
+from fakeredis.aioredis import FakeRedis
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy import event, update
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.pool import StaticPool
 
-from app.core.database import get_db  # noqa: E402
-from app.main import app  # noqa: E402
-from app.models import Base, User, UserRole  # noqa: E402
+from app.api.deps import get_task_cache
+from app.core.cache import TaskCache
+from app.core.constants import DEFAULT_CACHE_TTL_SECONDS
+from app.core.database import get_db
+from app.main import app
+from app.models import Base, User, UserRole
 
 PASSWORD = "12345678"
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def task_cache():
+    redis = FakeRedis(decode_responses=True)
+    cache = TaskCache(redis, DEFAULT_CACHE_TTL_SECONDS)
+    app.dependency_overrides[get_task_cache] = lambda: cache
+    yield cache
+    app.dependency_overrides.pop(get_task_cache, None)
+    await redis.aclose()
 
 
 @pytest.fixture(autouse=True)
@@ -28,15 +42,29 @@ def fast_bcrypt(monkeypatch):
 async def team(client, make_user):
     people = {}
     for role in ("owner", "editor", "viewer", "outsider", "admin"):
-        user, tokens = await make_user(email=f"{role}@example.com", admin=role == "admin")
-        people[role] = dict(user=user, headers=bearer(tokens))
+        user, tokens = await make_user(
+            email=f"{role}@example.com", admin=role == "admin"
+        )
+        people[role] = {"user": user, "headers": bearer(tokens)}
     owner = people["owner"]["headers"]
-    workspace = (await client.post("/api/v1/workspaces", json={"name": "Team"}, headers=owner)).json()
+    workspace = (
+        await client.post("/api/v1/workspaces", json={"name": "Team"}, headers=owner)
+    ).json()
     for role in ("editor", "viewer"):
-        response = await client.post(f"/api/v1/workspaces/{workspace['id']}/members", json={"email": people[role]["user"]["email"], "role": role.upper()}, headers=owner)
+        response = await client.post(
+            f"/api/v1/workspaces/{workspace['id']}/members",
+            json={"email": people[role]["user"]["email"], "role": role.upper()},
+            headers=owner,
+        )
         assert response.status_code == 201
-    project = (await client.post(f"/api/v1/workspaces/{workspace['id']}/projects", json={"name": "Project"}, headers=owner)).json()
-    return dict(people=people, workspace=workspace, project=project)
+    project = (
+        await client.post(
+            f"/api/v1/workspaces/{workspace['id']}/projects",
+            json={"name": "Project"},
+            headers=owner,
+        )
+    ).json()
+    return {"people": people, "workspace": workspace, "project": project}
 
 
 @pytest_asyncio.fixture
