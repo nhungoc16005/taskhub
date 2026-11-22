@@ -4,6 +4,8 @@ os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite://")
 os.environ.setdefault("SECRET_KEY", "test-secret-key-test-secret-key-1234567890")
 
 import pytest_asyncio  # noqa: E402
+import pytest
+import bcrypt
 from httpx import ASGITransport, AsyncClient  # noqa: E402
 from sqlalchemy import event, update  # noqa: E402
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine  # noqa: E402
@@ -14,6 +16,27 @@ from app.main import app  # noqa: E402
 from app.models import Base, User, UserRole  # noqa: E402
 
 PASSWORD = "12345678"
+
+
+@pytest.fixture(autouse=True)
+def fast_bcrypt(monkeypatch):
+    original = bcrypt.gensalt
+    monkeypatch.setattr(bcrypt, "gensalt", lambda: original(rounds=4))
+
+
+@pytest_asyncio.fixture
+async def team(client, make_user):
+    people = {}
+    for role in ("owner", "editor", "viewer", "outsider", "admin"):
+        user, tokens = await make_user(email=f"{role}@example.com", admin=role == "admin")
+        people[role] = dict(user=user, headers=bearer(tokens))
+    owner = people["owner"]["headers"]
+    workspace = (await client.post("/api/v1/workspaces", json={"name": "Team"}, headers=owner)).json()
+    for role in ("editor", "viewer"):
+        response = await client.post(f"/api/v1/workspaces/{workspace['id']}/members", json={"email": people[role]["user"]["email"], "role": role.upper()}, headers=owner)
+        assert response.status_code == 201
+    project = (await client.post(f"/api/v1/workspaces/{workspace['id']}/projects", json={"name": "Project"}, headers=owner)).json()
+    return dict(people=people, workspace=workspace, project=project)
 
 
 @pytest_asyncio.fixture
@@ -93,3 +116,29 @@ async def make_user(register, login, session_factory):
 
 def bearer(tokens: dict) -> dict:
     return {"Authorization": f"Bearer {tokens['access_token']}"}
+
+
+@pytest_asyncio.fixture
+async def create_workspace(client):
+    async def _create(tokens: dict, name: str = "WS"):
+        return await client.post(
+            "/api/v1/workspaces", headers=bearer(tokens), json={"name": name}
+        )
+
+    return _create
+
+
+@pytest_asyncio.fixture
+async def invite(client):
+    """Owner mời user (theo email) vào workspace với role cho trước."""
+
+    async def _invite(
+        owner_tokens: dict, workspace_id: int, email: str, role: str = "VIEWER"
+    ):
+        return await client.post(
+            f"/api/v1/workspaces/{workspace_id}/members",
+            headers=bearer(owner_tokens),
+            json={"email": email, "role": role},
+        )
+
+    return _invite

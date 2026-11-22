@@ -1,6 +1,4 @@
-from typing import Annotated
-
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, status
 
 from app.api.deps import (
     AdminUser,
@@ -9,17 +7,15 @@ from app.api.deps import (
     UserServiceDep,
     get_current_user,
 )
-from app.core.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
-from app.schemas.user import ChangePasswordRequest, Page, UserRead, UserUpdate
+from app.api.pagination import PaginationDep
+from app.schemas.common import Page
+from app.schemas.user import ChangePasswordRequest, UserRead, UserUpdate
 
 router = APIRouter(
     prefix="/users",
     tags=["users"],
     dependencies=[Depends(get_current_user)],
 )
-
-Skip = Annotated[int, Query(ge=0)]
-Limit = Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)]
 
 
 @router.get("/me", response_model=UserRead)
@@ -45,9 +41,9 @@ async def change_password(
 
 @router.get("", response_model=Page[UserRead])
 async def list_users(
-    service: UserServiceDep, skip: Skip = 0, limit: Limit = DEFAULT_PAGE_SIZE
+    service: UserServiceDep, pagination: PaginationDep
 ):
-    return await service.list_users(skip=skip, limit=limit)
+    return await service.list_users(pagination)
 
 
 @router.get("/{user_id}", response_model=UserRead)
