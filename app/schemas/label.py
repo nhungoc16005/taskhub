@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 from app.core.constants import (
     DEFAULT_LABEL_COLOR,
@@ -8,6 +8,8 @@ from app.core.constants import (
     LABEL_NAME_MAX_LENGTH,
     NAME_MIN_LENGTH,
 )
+
+from app.schemas.common import NonNull
 
 LabelName = Annotated[
     str,
@@ -26,15 +28,9 @@ class LabelCreate(BaseModel):
 
 
 class LabelUpdate(BaseModel):
-    name: LabelName | None = None
-    color: HexColor | None = None
+    name: NonNull[LabelName] = None
+    color: NonNull[HexColor] = None
 
-    @field_validator("name", "color")
-    @classmethod
-    def not_null(cls, v):
-        if v is None:
-            raise ValueError("this field cannot be null")
-        return v
 
 
 class LabelRead(BaseModel):

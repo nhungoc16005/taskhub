@@ -35,3 +35,8 @@ LABEL_ALREADY_ATTACHED = "Label is already attached to this task"
 LABEL_NOT_ATTACHED = "Label is not attached to this task"
 
 CANNOT_DEMOTE_OWNER = "The workspace owner cannot be demoted"
+
+LABEL_NAME_CONFLICT = "A label with this name already exists in the project"
+RESOURCE_CHANGED = "The task or label changed concurrently; reload and retry"
+FIELD_NOT_NULLABLE = "this field cannot be null"
+DUE_DATE_IN_PAST = "due_date cannot be in the past"

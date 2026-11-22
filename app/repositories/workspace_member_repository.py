@@ -42,7 +42,7 @@ class WorkspaceMemberRepository:
 
     async def remove(self, member: WorkspaceMember) -> None:
         await self.session.delete(member)
-        await self.session.commit()
+        await self.session.flush()
 
     async def update_role(
         self, member: WorkspaceMember, role: WorkspaceRole

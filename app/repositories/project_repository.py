@@ -3,7 +3,8 @@ from collections.abc import Sequence
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.project import Project, ProjectStatus
+from app.core.enums import ProjectStatus
+from app.models.project import Project
 from app.repositories.base import BaseRepository
 
 

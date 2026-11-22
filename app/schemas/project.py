@@ -3,7 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.core.constants import DESCRIPTION_MAX_LENGTH
-from app.models.project import ProjectStatus
+from app.core.enums import ProjectStatus
 from app.schemas.common import NameStr, UpdateName
 
 

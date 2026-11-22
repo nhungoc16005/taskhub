@@ -1,10 +1,11 @@
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, PositiveInt, field_validator
 
 from app.core.constants import DESCRIPTION_MAX_LENGTH
-from app.models.task import TaskPriority, TaskStatus
-from app.schemas.common import NameStr
+from app.core.enums import TaskPriority, TaskStatus
+from app.schemas.common import NameStr, NonNull
+from app.core.messages import DUE_DATE_IN_PAST
 
 
 class TaskCreate(BaseModel):
@@ -12,23 +13,26 @@ class TaskCreate(BaseModel):
     description: str | None = Field(None, max_length=DESCRIPTION_MAX_LENGTH)
     priority: TaskPriority = Field(TaskPriority.MEDIUM, description="Task priority")
     due_date: date | None = Field(None, description="Due date (YYYY-MM-DD)")
-    assignee_id: int | None = Field(None, description="Id of a workspace member")
+    assignee_id: PositiveInt | None = Field(None, description="Id of a workspace member")
+
+
+    @field_validator("due_date")
+    @classmethod
+    def due_date_not_in_past(cls, value: date | None) -> date | None:
+        # Date-only API uses UTC consistently, independent of server timezone.
+        if value is not None and value < datetime.now(timezone.utc).date():
+            raise ValueError(DUE_DATE_IN_PAST)
+        return value
 
 
 class TaskUpdate(BaseModel):
-    title: NameStr | None = None
+    title: NonNull[NameStr] = None
     description: str | None = Field(None, max_length=DESCRIPTION_MAX_LENGTH)
-    status: TaskStatus | None = None
-    priority: TaskPriority | None = None
+    status: NonNull[TaskStatus] = None
+    priority: NonNull[TaskPriority] = None
     due_date: date | None = None
-    assignee_id: int | None = None  # null = bỏ gán
+    assignee_id: PositiveInt | None = None  # null = bỏ gán
 
-    @field_validator("title", "status", "priority")
-    @classmethod
-    def not_null(cls, v):
-        if v is None:
-            raise ValueError("this field cannot be null")
-        return v
 
 
 class TaskRead(BaseModel):

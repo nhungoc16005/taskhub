@@ -17,7 +17,9 @@ async def test_project_roles(client, team, role, read, write, delete):
     assert (await client.get(path, headers=headers)).status_code == read
     assert (await client.patch(path, json={"name":"Changed"}, headers=headers)).status_code == write
     assert (await client.post(path+"/archive", headers=headers)).status_code == write
-    assert (await client.delete(path, headers=headers)).status_code == delete
+    # Successful archive makes subsequent writes read-only, including deletion.
+    expected_delete = 409 if write == 200 and delete == 204 else delete
+    assert (await client.delete(path, headers=headers)).status_code == expected_delete
 
 
 async def test_project_filter_and_pagination(client, team):

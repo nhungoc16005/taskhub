@@ -1,3 +1,5 @@
+from collections.abc import Callable
+from functools import partial
 from typing import Annotated
 
 from fastapi import Depends
@@ -6,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.exceptions import ForbiddenError
+from app.models.comment import Comment
 from app.models.label import Label
 from app.models.project import Project
 from app.models.task import Task
@@ -23,6 +26,7 @@ from app.services.auth_service import AuthService
 from app.services.comment_service import CommentService
 from app.services.label_service import LabelService
 from app.services.project_service import ProjectService
+from app.services.resource_policy import AuthorizedResource
 from app.services.task_service import TaskService
 from app.services.user_service import UserService
 from app.services.workspace_service import WorkspaceService
@@ -84,7 +88,8 @@ def get_workspace_service(
     user_repo: Annotated[UserRepository, Depends(get_user_repo)],
 ) -> WorkspaceService:
     return WorkspaceService(
-        WorkspaceRepository(db), WorkspaceMemberRepository(db), user_repo
+        WorkspaceRepository(db), WorkspaceMemberRepository(db),
+        user_repo, TaskRepository(db),
     )
 
 
@@ -111,15 +116,16 @@ def require_workspace_role(required: WorkspaceRole):
     return dependency
 
 
-def require_project_role(required: WorkspaceRole):
-    """Tạo dependency: đọc `project_id` từ path và kiểm tra quyền trong workspace chứa nó."""
-
-    async def dependency(
-        project_id: int, user: CurrentUser, service: ProjectServiceDep
-    ) -> Project:
-        return await service.get_with_role(user, project_id, required)
+def require_role(loader, required: WorkspaceRole, *, writable: bool = False):
+    """Apply one role/write policy to a typed resource loader dependency."""
+    async def dependency(load: Annotated[Callable, Depends(loader)]):
+        return await load(required, writable=writable)
 
     return dependency
+
+
+async def load_project(project_id: int, user: CurrentUser, service: ProjectServiceDep):
+    return partial(service.get_with_role, user, project_id)
 
 
 ViewableWorkspace = Annotated[
@@ -133,12 +139,14 @@ OwnedWorkspace = Annotated[
 ]
 
 ViewableProject = Annotated[
-    Project, Depends(require_project_role(WorkspaceRole.VIEWER))
+    Project, Depends(require_role(load_project, WorkspaceRole.VIEWER))
 ]
 EditableProject = Annotated[
-    Project, Depends(require_project_role(WorkspaceRole.EDITOR))
+    Project, Depends(require_role(load_project, WorkspaceRole.EDITOR, writable=True))
 ]
-OwnedProject = Annotated[Project, Depends(require_project_role(WorkspaceRole.OWNER))]
+OwnedProject = Annotated[
+    Project, Depends(require_role(load_project, WorkspaceRole.OWNER, writable=True))
+]
 
 
 # ---------- Task / Label / Comment (quyền theo workspace chứa project) ----------
@@ -171,29 +179,32 @@ def get_comment_service(db: DbSession, task_service: TaskServiceDep) -> CommentS
 CommentServiceDep = Annotated[CommentService, Depends(get_comment_service)]
 
 
-def require_task_role(required: WorkspaceRole):
-    """Tạo dependency: đọc `task_id` từ path và kiểm tra quyền trong workspace chứa task."""
-
-    async def dependency(
-        task_id: int, user: CurrentUser, service: TaskServiceDep
-    ) -> Task:
-        return await service.get_with_role(user, task_id, required)
-
-    return dependency
+async def load_task(task_id: int, user: CurrentUser, service: TaskServiceDep):
+    return partial(service.get_with_role, user, task_id)
 
 
-def require_label_role(required: WorkspaceRole):
-    """Tạo dependency: đọc `label_id` từ path và kiểm tra quyền trong workspace chứa label."""
-
-    async def dependency(
-        label_id: int, user: CurrentUser, service: LabelServiceDep
-    ) -> Label:
-        return await service.get_with_role(user, label_id, required)
-
-    return dependency
+async def load_label(label_id: int, user: CurrentUser, service: LabelServiceDep):
+    return partial(service.get_with_role, user, label_id)
 
 
-ViewableTask = Annotated[Task, Depends(require_task_role(WorkspaceRole.VIEWER))]
-EditableTask = Annotated[Task, Depends(require_task_role(WorkspaceRole.EDITOR))]
+ViewableTask = Annotated[
+    AuthorizedResource[Task], Depends(require_role(load_task, WorkspaceRole.VIEWER))
+]
+EditableTask = Annotated[
+    AuthorizedResource[Task],
+    Depends(require_role(load_task, WorkspaceRole.EDITOR, writable=True)),
+]
 
-EditableLabel = Annotated[Label, Depends(require_label_role(WorkspaceRole.EDITOR))]
+EditableLabel = Annotated[
+    AuthorizedResource[Label],
+    Depends(require_role(load_label, WorkspaceRole.EDITOR, writable=True)),
+]
+
+
+async def get_deletable_comment(
+    comment_id: int, user: CurrentUser, service: CommentServiceDep
+) -> Comment:
+    return await service.get_deletable(user, comment_id)
+
+
+DeletableComment = Annotated[Comment, Depends(get_deletable_comment)]

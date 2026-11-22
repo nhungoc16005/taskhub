@@ -83,7 +83,7 @@ async def test_labels_lifecycle_and_project_boundary(client, team):
     project = (await client.post(f"/api/v1/workspaces/{team['workspace']['id']}/projects", json={"name":"Other"}, headers=headers)).json()
     other = (await client.post(f"/api/v1/projects/{project['id']}/labels", json={"name":"Other"}, headers=headers)).json()
     assert (await client.post(f"/api/v1/tasks/{task['id']}/labels/{other['id']}", headers=headers)).status_code == 404
-    assert len((await client.get(path, headers=headers)).json()) == 1
+    assert (await client.get(path, headers=headers)).json()["total"] == 1
     assert (await client.patch(f"/api/v1/labels/{label['id']}", json={"name":"Fixed"}, headers=headers)).status_code == 200
     assert (await client.delete(attach, headers=headers)).status_code == 204
     assert (await client.delete(attach, headers=headers)).status_code == 404

@@ -113,3 +113,13 @@ class LabelNotAttachedError(NotFoundError):
 class CannotDemoteOwnerError(AppError):
     status_code = 400
     message = messages.CANNOT_DEMOTE_OWNER
+
+
+class LabelNameConflictError(AppError):
+    status_code = 409
+    message = messages.LABEL_NAME_CONFLICT
+
+
+class ResourceChangedError(AppError):
+    status_code = 409
+    message = messages.RESOURCE_CHANGED
