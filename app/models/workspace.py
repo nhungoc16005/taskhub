@@ -30,10 +30,10 @@ class Workspace(Base):
 
     owner: Mapped["User"] = relationship()
     members: Mapped[list["WorkspaceMember"]] = relationship(
-        back_populates="workspace", cascade="all, delete-orphan"
+        back_populates="workspace", cascade="all, delete-orphan", passive_deletes=True
     )
     projects: Mapped[list["Project"]] = relationship(
-        back_populates="workspace", cascade="all, delete-orphan"
+        back_populates="workspace", cascade="all, delete-orphan", passive_deletes=True
     )
 
 

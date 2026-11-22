@@ -1,4 +1,5 @@
 USER_NOT_FOUND = "User not found"
+NAME_CANNOT_BE_NULL = "name cannot be null"
 EMAIL_ALREADY_EXISTS = "Email already exists"
 USER_IN_USE = "User still owns workspaces or tasks and cannot be deleted"
 

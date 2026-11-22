@@ -10,15 +10,12 @@ from app.api.deps import (
     ViewableProject,
     ViewableTask,
 )
-from app.core.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+from app.api.pagination import PaginationDep
 from app.models.task import TaskPriority, TaskStatus
 from app.schemas.common import Page
 from app.schemas.task import TaskCreate, TaskRead, TaskUpdate
 
 router = APIRouter(tags=["tasks"])
-
-Skip = Annotated[int, Query(ge=0)]
-Limit = Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)]
 
 
 @router.post(
@@ -39,14 +36,13 @@ async def create_task(
 async def list_tasks(
     project: ViewableProject,
     service: TaskServiceDep,
-    status: TaskStatus | None = None,
+    pagination: PaginationDep,
+    task_status: Annotated[TaskStatus | None, Query(alias="status")] = None,
     priority: TaskPriority | None = None,
     assignee_id: int | None = None,
-    skip: Skip = 0,
-    limit: Limit = DEFAULT_PAGE_SIZE,
 ):
     return await service.list_by_project(
-        project, skip, limit, status, priority, assignee_id
+        project, pagination, task_status, priority, assignee_id
     )
 
 

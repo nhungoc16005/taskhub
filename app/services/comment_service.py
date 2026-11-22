@@ -5,6 +5,7 @@ from app.models.user import User
 from app.models.workspace import WorkspaceRole
 from app.repositories.comment_repository import CommentRepository
 from app.schemas.comment import CommentCreate
+from app.schemas.common import Page, Pagination
 from app.services.task_service import TaskService
 
 
@@ -18,13 +19,13 @@ class CommentService:
             {"task_id": task.id, "author_id": user.id, "content": data.content}
         )
 
-    async def list_by_task(self, task: Task, skip: int, limit: int) -> dict:
-        return {
-            "items": await self.repo.list_by_task(task.id, skip, limit),
-            "total": await self.repo.count_by_task(task.id),
-            "skip": skip,
-            "limit": limit,
-        }
+    async def list_by_task(self, task: Task, pagination: Pagination) -> Page[Comment]:
+        return pagination.page(
+            items=await self.repo.list_by_task(
+                task.id, pagination.skip, pagination.limit
+            ),
+            total=await self.repo.count_by_task(task.id),
+        )
 
     async def delete(self, user: User, comment_id: int) -> None:
         """Tác giả xóa comment của mình; OWNER/ADMIN xóa được comment của người khác."""

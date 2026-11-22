@@ -3,6 +3,7 @@ from app.models.project import Project, ProjectStatus
 from app.models.user import User
 from app.models.workspace import Workspace, WorkspaceRole
 from app.repositories.project_repository import ProjectRepository
+from app.schemas.common import Page, Pagination
 from app.schemas.project import ProjectCreate, ProjectUpdate
 from app.services.workspace_service import WorkspaceService
 
@@ -35,18 +36,15 @@ class ProjectService:
     async def list_by_workspace(
         self,
         workspace: Workspace,
-        skip: int,
-        limit: int,
+        pagination: Pagination,
         status: ProjectStatus | None,
-    ) -> dict:
-        return {
-            "items": await self.repo.list_by_workspace(
-                workspace.id, skip, limit, status
+    ) -> Page[Project]:
+        return pagination.page(
+            items=await self.repo.list_by_workspace(
+                workspace.id, pagination.skip, pagination.limit, status
             ),
-            "total": await self.repo.count_by_workspace(workspace.id, status),
-            "skip": skip,
-            "limit": limit,
-        }
+            total=await self.repo.count_by_workspace(workspace.id, status),
+        )
 
     async def update(self, project: Project, data: ProjectUpdate) -> Project:
         return await self.repo.update(project, data.model_dump(exclude_unset=True))

@@ -1,10 +1,10 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.core.constants import DESCRIPTION_MAX_LENGTH
 from app.models.project import ProjectStatus
-from app.schemas.common import NameStr
+from app.schemas.common import NameStr, UpdateName
 
 
 class ProjectCreate(BaseModel):
@@ -13,15 +13,8 @@ class ProjectCreate(BaseModel):
 
 
 class ProjectUpdate(BaseModel):
-    name: NameStr | None = None
+    name: UpdateName = None
     description: str | None = Field(None, max_length=DESCRIPTION_MAX_LENGTH)
-
-    @field_validator("name")
-    @classmethod
-    def name_not_null(cls, v):
-        if v is None:
-            raise ValueError("name cannot be null")
-        return v
 
 
 class ProjectRead(BaseModel):

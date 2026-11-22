@@ -1,6 +1,4 @@
-from typing import Annotated
-
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, status
 
 from app.api.deps import (
     CommentServiceDep,
@@ -8,14 +6,11 @@ from app.api.deps import (
     EditableTask,
     ViewableTask,
 )
-from app.core.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+from app.api.pagination import PaginationDep
 from app.schemas.comment import CommentCreate, CommentRead
 from app.schemas.common import Page
 
 router = APIRouter(tags=["comments"])
-
-Skip = Annotated[int, Query(ge=0)]
-Limit = Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)]
 
 
 @router.post(
@@ -36,10 +31,9 @@ async def create_comment(
 async def list_comments(
     task: ViewableTask,
     service: CommentServiceDep,
-    skip: Skip = 0,
-    limit: Limit = DEFAULT_PAGE_SIZE,
+    pagination: PaginationDep,
 ):
-    return await service.list_by_task(task, skip, limit)
+    return await service.list_by_task(task, pagination)
 
 
 @router.delete("/comments/{comment_id}", status_code=status.HTTP_204_NO_CONTENT)

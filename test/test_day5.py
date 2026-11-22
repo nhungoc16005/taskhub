@@ -1,4 +1,10 @@
 import pytest
+from sqlalchemy import select
+
+from app.models.comment import Comment
+from app.models.label import Label, task_labels
+from app.models.task import Task
+from app.models.workspace import WorkspaceMember
 
 
 async def create_task(client, team, role="editor", **fields):
@@ -113,12 +119,24 @@ async def test_removed_member_unassigned_and_denied(client, team):
     assert (await client.delete(path, headers=team["people"]["editor"]["headers"])).status_code == 404
 
 
-async def test_workspace_cascades_day5_resources(client, team):
+async def test_workspace_cascades_day5_resources(client, team, session_factory):
     task = await create_task(client, team)
     headers = team["people"]["owner"]["headers"]
     label = (await client.post(f"/api/v1/projects/{team['project']['id']}/labels", json={"name":"Bug"}, headers=headers)).json()
     await client.post(f"/api/v1/tasks/{task['id']}/labels/{label['id']}", headers=headers)
     comment = (await client.post(f"/api/v1/tasks/{task['id']}/comments", json={"content":"Hello"}, headers=headers)).json()
     assert (await client.delete(f"/api/v1/workspaces/{team['workspace']['id']}", headers=headers)).status_code == 204
+    async with session_factory() as session:
+        assert await session.get(Task, task["id"]) is None
+        assert await session.get(Label, label["id"]) is None
+        assert await session.get(Comment, comment["id"]) is None
+        assert (await session.execute(
+            select(task_labels).where(task_labels.c.task_id == task["id"])
+        )).all() == []
+        assert (await session.scalars(
+            select(WorkspaceMember).where(
+                WorkspaceMember.workspace_id == team["workspace"]["id"]
+            )
+        )).all() == []
     for path in (f"/tasks/{task['id']}", f"/labels/{label['id']}", f"/comments/{comment['id']}"):
         assert (await client.delete("/api/v1"+path, headers=headers)).status_code == 404

@@ -9,6 +9,7 @@ from app.models.task import Task, TaskPriority, TaskStatus
 from app.models.user import User
 from app.models.workspace import WorkspaceRole
 from app.repositories.task_repository import TaskRepository
+from app.schemas.common import Page, Pagination
 from app.schemas.task import TaskCreate, TaskUpdate
 from app.services.project_service import ProjectService
 from app.services.workspace_service import WorkspaceService
@@ -62,22 +63,20 @@ class TaskService:
     async def list_by_project(
         self,
         project: Project,
-        skip: int,
-        limit: int,
+        pagination: Pagination,
         status: TaskStatus | None,
         priority: TaskPriority | None,
         assignee_id: int | None,
-    ) -> dict:
-        return {
-            "items": await self.repo.list_by_project(
-                project.id, skip, limit, status, priority, assignee_id
+    ) -> Page[Task]:
+        return pagination.page(
+            items=await self.repo.list_by_project(
+                project.id, pagination.skip, pagination.limit,
+                status, priority, assignee_id,
             ),
-            "total": await self.repo.count_by_project(
+            total=await self.repo.count_by_project(
                 project.id, status, priority, assignee_id
             ),
-            "skip": skip,
-            "limit": limit,
-        }
+        )
 
     async def update(self, task: Task, data: TaskUpdate) -> Task:
         changes = data.model_dump(exclude_unset=True)

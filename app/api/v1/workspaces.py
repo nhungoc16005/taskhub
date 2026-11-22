@@ -1,6 +1,4 @@
-from typing import Annotated
-
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, status
 
 from app.api.deps import (
     CurrentUser,
@@ -8,7 +6,7 @@ from app.api.deps import (
     ViewableWorkspace,
     WorkspaceServiceDep,
 )
-from app.core.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+from app.api.pagination import PaginationDep
 from app.schemas.common import Page
 from app.schemas.workspace import (
     MemberInvite,
@@ -20,9 +18,6 @@ from app.schemas.workspace import (
 )
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
-
-Skip = Annotated[int, Query(ge=0)]
-Limit = Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)]
 
 
 @router.post("", response_model=WorkspaceRead, status_code=status.HTTP_201_CREATED)
@@ -36,10 +31,9 @@ async def create_workspace(
 async def list_my_workspaces(
     current_user: CurrentUser,
     service: WorkspaceServiceDep,
-    skip: Skip = 0,
-    limit: Limit = DEFAULT_PAGE_SIZE,
+    pagination: PaginationDep,
 ):
-    return await service.list_for_user(current_user, skip, limit)
+    return await service.list_for_user(current_user, pagination)
 
 
 @router.get("/{workspace_id}", response_model=WorkspaceRead)

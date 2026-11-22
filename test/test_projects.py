@@ -1,5 +1,8 @@
 import pytest_asyncio
 from conftest import bearer
+from sqlalchemy import select
+
+from app.models.project import Project
 
 WS = "/api/v1/workspaces"
 PROJECTS = "/api/v1/projects"
@@ -134,8 +137,22 @@ async def test_only_owner_can_delete_project(client, team):
     assert gone.status_code == 404
 
 
-async def test_deleting_workspace_removes_its_projects(client, team):
+async def test_deleting_workspace_removes_its_projects(
+    client, team, session_factory, create_workspace
+):
     p = (await make_project(client, team)).json()
-    await client.delete(f"{WS}/{team['ws']}", headers=bearer(team["owner"]))
+    other_ws = (await create_workspace(team["owner"], "Other workspace")).json()
+    other = (await client.post(
+        f"{WS}/{other_ws['id']}/projects",
+        headers=bearer(team["owner"]), json={"name": "Keep me"},
+    )).json()
+    deleted = await client.delete(f"{WS}/{team['ws']}", headers=bearer(team["owner"]))
+    assert deleted.status_code == 204
+    async with session_factory() as session:
+        remaining = await session.scalars(
+            select(Project).where(Project.workspace_id == team["ws"])
+        )
+        assert remaining.all() == []
+        assert await session.get(Project, other["id"]) is not None
     r = await client.get(f"{PROJECTS}/{p['id']}", headers=bearer(team["owner"]))
     assert r.status_code == 404

@@ -53,7 +53,13 @@ async def test_workspace_pagination_and_membership(client, team):
 async def test_member_remove_and_change_role(client, team):
     path = f"/api/v1/workspaces/{team['workspace']['id']}/members/{team['people']['editor']['user']['id']}"
     headers = team["people"]["owner"]["headers"]
-    assert (await client.patch(path, json={"role":"VIEWER"}, headers=headers)).status_code == 200
+    response = await client.patch(path, json={"role":"VIEWER"}, headers=headers)
+    assert response.status_code == 200
+    editor = team["people"]["editor"]["user"]
+    assert response.json() == {
+        "user_id": editor["id"], "role": "VIEWER",
+        "email": editor["email"], "full_name": editor["full_name"],
+    }
     assert (await client.delete(path, headers=headers)).status_code == 204
     assert (await client.delete(path, headers=headers)).status_code == 404
     assert (await client.get(f"/api/v1/projects/{team['project']['id']}", headers=team["people"]["editor"]["headers"])).status_code == 404
