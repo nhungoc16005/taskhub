@@ -12,6 +12,8 @@ from app.core.exceptions import (
 from app.core.permissions import has_workspace_role
 from app.models.user import User, UserRole
 from app.models.workspace import Workspace, WorkspaceMember, WorkspaceRole
+from app.repositories.task_repository import TaskRepository
+from app.services.transaction import transaction
 from app.repositories.user_repository import UserRepository
 from app.repositories.workspace_member_repository import WorkspaceMemberRepository
 from app.repositories.workspace_repository import WorkspaceRepository
@@ -25,10 +27,12 @@ class WorkspaceService:
         repo: WorkspaceRepository,
         member_repo: WorkspaceMemberRepository,
         user_repo: UserRepository,
+        task_repo: TaskRepository,
     ):
         self.repo = repo
         self.member_repo = member_repo
         self.user_repo = user_repo
+        self.task_repo = task_repo
 
     async def get_with_role(
         self, user: User, workspace_id: int, required: WorkspaceRole
@@ -51,6 +55,9 @@ class WorkspaceService:
         if not has_workspace_role(member.role, required):
             raise ForbiddenError()
         return workspace
+
+    async def is_member(self, workspace_id: int, user_id: int) -> bool:
+        return await self.member_repo.get(workspace_id, user_id) is not None
 
     async def create(self, user: User, data: WorkspaceCreate) -> Workspace:
         return await self.repo.create_with_owner(data.name, user.id)
@@ -93,7 +100,9 @@ class WorkspaceService:
         member = await self.member_repo.get(workspace.id, user_id)
         if member is None:
             raise MemberNotFoundError()
-        await self.member_repo.remove(member)
+        async with transaction(self.member_repo.session):
+            await self.task_repo.unassign_in_workspace(workspace.id, user_id)
+            await self.member_repo.remove(member)
 
     async def update_member(
         self, workspace: Workspace, user_id: int, data: MemberUpdate

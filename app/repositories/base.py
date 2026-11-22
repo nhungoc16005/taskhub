@@ -42,7 +42,11 @@ class BaseRepository(Generic[ModelT]):
     async def update(self, obj: ModelT, data: dict) -> ModelT:
         for key, value in data.items():
             setattr(obj, key, value)
-        await self.session.commit()
+        try:
+            await self.session.commit()
+        except IntegrityError:
+            await self.session.rollback()
+            raise
         await self.session.refresh(obj)
         return obj
 

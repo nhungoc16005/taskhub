@@ -1,10 +1,10 @@
-import enum
 from datetime import date, datetime
 from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import Date, DateTime, Enum, ForeignKey, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.enums import TaskPriority, TaskStatus
 from app.models.base import Base
 from app.models.label import task_labels
 
@@ -13,20 +13,6 @@ if TYPE_CHECKING:
     from app.models.label import Label
     from app.models.project import Project
     from app.models.user import User
-
-
-class TaskStatus(str, enum.Enum):
-    TODO = "TODO"
-    IN_PROGRESS = "IN_PROGRESS"
-    IN_REVIEW = "IN_REVIEW"
-    DONE = "DONE"
-
-
-class TaskPriority(str, enum.Enum):
-    LOW = "LOW"
-    MEDIUM = "MEDIUM"
-    HIGH = "HIGH"
-    URGENT = "URGENT"
 
 
 class Task(Base):
@@ -41,7 +27,7 @@ class Task(Base):
         default=None,
         index=True,
     )
-    created_by: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    created_by: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), index=True)
     title: Mapped[str] = mapped_column(String(255))
     description: Mapped[str | None] = mapped_column(Text, default=None)
     status: Mapped[TaskStatus] = mapped_column(

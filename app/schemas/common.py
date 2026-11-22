@@ -5,7 +5,7 @@ from typing import Annotated, Generic, TypeVar
 from pydantic import AfterValidator, BaseModel, ConfigDict, StringConstraints
 
 from app.core.constants import NAME_MAX_LENGTH, NAME_MIN_LENGTH
-from app.core.messages import NAME_CANNOT_BE_NULL
+from app.core.messages import FIELD_NOT_NULLABLE, NAME_CANNOT_BE_NULL
 
 NameStr = Annotated[
     str,
@@ -45,3 +45,12 @@ class Pagination:
 
     def page(self, items: Sequence[T], total: int) -> Page[T]:
         return Page(items=list(items), total=total, skip=self.skip, limit=self.limit)
+
+
+def non_null(value: T | None) -> T:
+    if value is None:
+        raise ValueError(FIELD_NOT_NULLABLE)
+    return value
+
+
+NonNull = Annotated[T | None, AfterValidator(non_null)]

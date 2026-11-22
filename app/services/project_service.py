@@ -1,5 +1,6 @@
-from app.core.exceptions import ProjectNotFoundError, WorkspaceNotFoundError
-from app.models.project import Project, ProjectStatus
+from app.core.exceptions import ProjectArchivedError, ProjectNotFoundError, WorkspaceNotFoundError
+from app.core.enums import ProjectStatus
+from app.models.project import Project
 from app.models.user import User
 from app.models.workspace import Workspace, WorkspaceRole
 from app.repositories.project_repository import ProjectRepository
@@ -14,7 +15,7 @@ class ProjectService:
         self.workspace_service = workspace_service
 
     async def get_with_role(
-        self, user: User, project_id: int, required: WorkspaceRole
+        self, user: User, project_id: int, required: WorkspaceRole, *, writable: bool = False
     ) -> Project:
         """Quyền trên project = quyền của user trong workspace chứa project đó."""
         project = await self.repo.get(project_id)
@@ -25,8 +26,20 @@ class ProjectService:
                 user, project.workspace_id, required
             )
         except WorkspaceNotFoundError:
-            raise ProjectNotFoundError()
+            raise ProjectNotFoundError() from None
+        if writable:
+            self.ensure_writable(project)
         return project
+
+    @staticmethod
+    def ensure_writable(project: Project) -> None:
+        if project.status == ProjectStatus.ARCHIVED:
+            raise ProjectArchivedError()
+
+    async def require_owner(self, user: User, project: Project) -> None:
+        await self.workspace_service.get_with_role(
+            user, project.workspace_id, WorkspaceRole.OWNER
+        )
 
     async def create(self, workspace: Workspace, data: ProjectCreate) -> Project:
         return await self.repo.create(

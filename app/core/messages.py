@@ -1,4 +1,5 @@
 USER_NOT_FOUND = "User not found"
+NAME_CANNOT_BE_NULL = "name cannot be null"
 EMAIL_ALREADY_EXISTS = "Email already exists"
 USER_IN_USE = "User still owns workspaces or tasks and cannot be deleted"
 
@@ -22,7 +23,20 @@ WORKSPACE_NOT_FOUND = "Workspace not found"
 PROJECT_NOT_FOUND = "Project not found"
 MEMBER_NOT_FOUND = "Member not found"
 ALREADY_MEMBER = "User is already a member of this workspace"
-CANNOT_REMOVE_OWNER = "The workspace owner cannot be removed"
+CANNOT_REMOVE_OWNER = "The workspace owner cannot be removed or demoted"
 
-NAME_CANNOT_BE_NULL = "name cannot be null"
+
+TASK_NOT_FOUND = "Task not found"
+LABEL_NOT_FOUND = "Label not found"
+COMMENT_NOT_FOUND = "Comment not found"
+ASSIGNEE_NOT_MEMBER = "Assignee must be a member of the workspace"
+PROJECT_ARCHIVED = "Project is archived"
+LABEL_ALREADY_ATTACHED = "Label is already attached to this task"
+LABEL_NOT_ATTACHED = "Label is not attached to this task"
+
 CANNOT_DEMOTE_OWNER = "The workspace owner cannot be demoted"
+
+LABEL_NAME_CONFLICT = "A label with this name already exists in the project"
+RESOURCE_CHANGED = "The task or label changed concurrently; reload and retry"
+FIELD_NOT_NULLABLE = "this field cannot be null"
+DUE_DATE_IN_PAST = "due_date cannot be in the past"
