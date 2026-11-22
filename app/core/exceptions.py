@@ -108,3 +108,8 @@ class LabelAlreadyAttachedError(AppError):
 
 class LabelNotAttachedError(NotFoundError):
     message = messages.LABEL_NOT_ATTACHED
+
+
+class CannotDemoteOwnerError(AppError):
+    status_code = 400
+    message = messages.CANNOT_DEMOTE_OWNER

@@ -78,11 +78,17 @@ async def remove_member(
     await service.remove_member(workspace, user_id)
 
 
-@router.patch("/{workspace_id}/members/{user_id}", response_model=MemberRead)
+@router.patch(
+    "/{workspace_id}/members/{user_id}", response_model=MemberRead,
+    summary="Change a workspace member role",
+    responses={400: {"description": "Owner role cannot be changed"},
+               403: {"description": "Insufficient permissions"},
+               404: {"description": "Workspace or member not found"}},
+)
 async def update_member(
     user_id: int,
     data: MemberUpdate,
     workspace: OwnedWorkspace,
     service: WorkspaceServiceDep,
-):
-    return await service.update_member(workspace, user_id, data)
+) -> MemberRead:
+    return MemberRead.model_validate(await service.update_member(workspace, user_id, data))

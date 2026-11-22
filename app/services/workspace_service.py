@@ -3,6 +3,7 @@ from sqlalchemy.exc import IntegrityError
 from app.core.exceptions import (
     AlreadyMemberError,
     CannotRemoveOwnerError,
+    CannotDemoteOwnerError,
     ForbiddenError,
     MemberNotFoundError,
     UserNotFoundError,
@@ -98,8 +99,14 @@ class WorkspaceService:
         self, workspace: Workspace, user_id: int, data: MemberUpdate
     ) -> WorkspaceMember:
         if user_id == workspace.owner_id:
-            raise CannotRemoveOwnerError()
+            raise CannotDemoteOwnerError()
         member = await self.member_repo.get(workspace.id, user_id)
         if member is None:
             raise MemberNotFoundError()
-        return await self.member_repo.update_role(member, data.role)
+        try:
+            member = await self.member_repo.update_role(member, data.role)
+            await self.member_repo.session.commit()
+            return member
+        except Exception:
+            await self.member_repo.session.rollback()
+            raise

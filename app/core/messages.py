@@ -33,3 +33,5 @@ ASSIGNEE_NOT_MEMBER = "Assignee must be a member of the workspace"
 PROJECT_ARCHIVED = "Project is archived"
 LABEL_ALREADY_ATTACHED = "Label is already attached to this task"
 LABEL_NOT_ATTACHED = "Label is not attached to this task"
+
+CANNOT_DEMOTE_OWNER = "The workspace owner cannot be demoted"

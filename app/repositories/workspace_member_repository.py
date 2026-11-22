@@ -1,13 +1,11 @@
 from collections.abc import Sequence
 
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.workspace import WorkspaceMember, WorkspaceRole
-from app.models.project import Project
-from app.models.task import Task
 
 
 class WorkspaceMemberRepository:
@@ -43,14 +41,6 @@ class WorkspaceMemberRepository:
         return member
 
     async def remove(self, member: WorkspaceMember) -> None:
-        await self.session.execute(
-            update(Task).where(
-                Task.project_id.in_(
-                    select(Project.id).where(Project.workspace_id == member.workspace_id)
-                ),
-                Task.assignee_id == member.user_id,
-            ).values(assignee_id=None)
-        )
         await self.session.delete(member)
         await self.session.commit()
 
@@ -58,6 +48,6 @@ class WorkspaceMemberRepository:
         self, member: WorkspaceMember, role: WorkspaceRole
     ) -> WorkspaceMember:
         member.role = role
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(member, attribute_names=["role", "user"])
         return member
