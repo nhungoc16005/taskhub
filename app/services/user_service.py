@@ -8,6 +8,7 @@ from app.core.exceptions import (
 from app.core.security import hash_password
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
+from app.schemas.common import Page, Pagination
 from app.schemas.user import UserCreate, UserUpdate
 
 
@@ -35,13 +36,11 @@ class UserService:
             raise UserNotFoundError()
         return user
 
-    async def list_users(self, skip: int, limit: int) -> dict:
-        return {
-            "items": await self.repo.get_all(skip=skip, limit=limit),
-            "total": await self.repo.count(),
-            "skip": skip,
-            "limit": limit,
-        }
+    async def list_users(self, pagination: Pagination) -> Page[User]:
+        return pagination.page(
+            items=await self.repo.get_all(skip=pagination.skip, limit=pagination.limit),
+            total=await self.repo.count(),
+        )
 
     async def update_user(self, user_id: int, data: UserUpdate) -> User:
         user = await self.get_user(user_id)

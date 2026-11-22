@@ -77,3 +77,8 @@ class AlreadyMemberError(AppError):
 class CannotRemoveOwnerError(AppError):
     status_code = 400
     message = messages.CANNOT_REMOVE_OWNER
+
+
+class CannotDemoteOwnerError(AppError):
+    status_code = 400
+    message = messages.CANNOT_DEMOTE_OWNER

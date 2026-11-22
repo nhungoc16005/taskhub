@@ -19,7 +19,6 @@ from app.core.constants import (
     PASSWORD_MIN_LENGTH,
 )
 from app.models.user import UserRole
-from app.schemas.common import Page
 
 FullName = Annotated[
     str,

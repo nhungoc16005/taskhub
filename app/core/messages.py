@@ -23,3 +23,6 @@ PROJECT_NOT_FOUND = "Project not found"
 MEMBER_NOT_FOUND = "Member not found"
 ALREADY_MEMBER = "User is already a member of this workspace"
 CANNOT_REMOVE_OWNER = "The workspace owner cannot be removed"
+
+NAME_CANNOT_BE_NULL = "name cannot be null"
+CANNOT_DEMOTE_OWNER = "The workspace owner cannot be demoted"

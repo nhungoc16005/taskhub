@@ -62,5 +62,5 @@ class Task(Base):
         secondary=task_labels, back_populates="tasks"
     )
     comments: Mapped[list["Comment"]] = relationship(
-        back_populates="task", cascade="all, delete-orphan"
+        back_populates="task", cascade="all, delete-orphan", passive_deletes=True
     )

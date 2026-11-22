@@ -3,6 +3,7 @@ from collections.abc import Sequence
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.workspace import WorkspaceMember, WorkspaceRole
 
@@ -19,6 +20,7 @@ class WorkspaceMemberRepository:
     async def list_by_workspace(self, workspace_id: int) -> Sequence[WorkspaceMember]:
         stmt = (
             select(WorkspaceMember)
+            .options(selectinload(WorkspaceMember.user))
             .where(WorkspaceMember.workspace_id == workspace_id)
             .order_by(WorkspaceMember.user_id)
         )
@@ -35,9 +37,17 @@ class WorkspaceMemberRepository:
         except IntegrityError:
             await self.session.rollback()
             raise
-        await self.session.refresh(member)
+        await self.session.refresh(member, attribute_names=["role", "user"])
         return member
 
     async def remove(self, member: WorkspaceMember) -> None:
         await self.session.delete(member)
         await self.session.commit()
+
+    async def update_role(
+        self, member: WorkspaceMember, role: WorkspaceRole
+    ) -> WorkspaceMember:
+        member.role = role
+        await self.session.flush()
+        await self.session.refresh(member, attribute_names=["role", "user"])
+        return member

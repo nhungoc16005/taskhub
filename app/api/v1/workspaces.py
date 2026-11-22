@@ -1,6 +1,4 @@
-from typing import Annotated
-
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, status
 
 from app.api.deps import (
     CurrentUser,
@@ -8,20 +6,18 @@ from app.api.deps import (
     ViewableWorkspace,
     WorkspaceServiceDep,
 )
-from app.core.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+from app.api.pagination import PaginationDep
 from app.schemas.common import Page
 from app.schemas.workspace import (
     MemberInvite,
     MemberRead,
+    MemberUpdate,
     WorkspaceCreate,
     WorkspaceRead,
     WorkspaceUpdate,
 )
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
-
-Skip = Annotated[int, Query(ge=0)]
-Limit = Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)]
 
 
 @router.post("", response_model=WorkspaceRead, status_code=status.HTTP_201_CREATED)
@@ -35,10 +31,9 @@ async def create_workspace(
 async def list_my_workspaces(
     current_user: CurrentUser,
     service: WorkspaceServiceDep,
-    skip: Skip = 0,
-    limit: Limit = DEFAULT_PAGE_SIZE,
+    pagination: PaginationDep,
 ):
-    return await service.list_for_user(current_user, skip, limit)
+    return await service.list_for_user(current_user, pagination)
 
 
 @router.get("/{workspace_id}", response_model=WorkspaceRead)
@@ -81,3 +76,19 @@ async def remove_member(
     user_id: int, workspace: OwnedWorkspace, service: WorkspaceServiceDep
 ):
     await service.remove_member(workspace, user_id)
+
+
+@router.patch(
+    "/{workspace_id}/members/{user_id}", response_model=MemberRead,
+    summary="Change a workspace member role",
+    responses={400: {"description": "Owner role cannot be changed"},
+               403: {"description": "Insufficient permissions"},
+               404: {"description": "Workspace or member not found"}},
+)
+async def update_member(
+    user_id: int,
+    data: MemberUpdate,
+    workspace: OwnedWorkspace,
+    service: WorkspaceServiceDep,
+) -> MemberRead:
+    return MemberRead.model_validate(await service.update_member(workspace, user_id, data))

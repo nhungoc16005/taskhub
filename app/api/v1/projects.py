@@ -10,15 +10,12 @@ from app.api.deps import (
     ViewableProject,
     ViewableWorkspace,
 )
-from app.core.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+from app.api.pagination import PaginationDep
 from app.models.project import ProjectStatus
 from app.schemas.common import Page
 from app.schemas.project import ProjectCreate, ProjectRead, ProjectUpdate
 
 router = APIRouter(tags=["projects"])
-
-Skip = Annotated[int, Query(ge=0)]
-Limit = Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)]
 
 
 @router.post(
@@ -36,11 +33,10 @@ async def create_project(
 async def list_projects(
     workspace: ViewableWorkspace,
     service: ProjectServiceDep,
-    status: ProjectStatus | None = None,
-    skip: Skip = 0,
-    limit: Limit = DEFAULT_PAGE_SIZE,
+    pagination: PaginationDep,
+    project_status: Annotated[ProjectStatus | None, Query(alias="status")] = None,
 ):
-    return await service.list_by_workspace(workspace, skip, limit, status)
+    return await service.list_by_workspace(workspace, pagination, project_status)
 
 
 @router.get("/projects/{project_id}", response_model=ProjectRead)

@@ -1,11 +1,11 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import AliasPath, BaseModel, ConfigDict, EmailStr, Field
 
 from app.core.constants import EMAIL_MAX_LENGTH
 from app.models.workspace import WorkspaceRole
-from app.schemas.common import NameStr
+from app.schemas.common import NameStr, UpdateName
 
 
 class WorkspaceCreate(BaseModel):
@@ -13,14 +13,7 @@ class WorkspaceCreate(BaseModel):
 
 
 class WorkspaceUpdate(BaseModel):
-    name: NameStr | None = None
-
-    @field_validator("name")
-    @classmethod
-    def name_not_null(cls, v):
-        if v is None:
-            raise ValueError("name cannot be null")
-        return v
+    name: UpdateName = None
 
 
 class WorkspaceRead(BaseModel):
@@ -47,3 +40,9 @@ class MemberRead(BaseModel):
 
     user_id: int
     role: WorkspaceRole
+    email: EmailStr = Field(validation_alias=AliasPath("user", "email"))
+    full_name: str = Field(validation_alias=AliasPath("user", "full_name"))
+
+
+class MemberUpdate(BaseModel):
+    role: Literal[WorkspaceRole.EDITOR, WorkspaceRole.VIEWER]
