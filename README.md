@@ -161,5 +161,3 @@ git diff feature/day6-cache-logging...feature/day7-docs-docker
 ```
 
 Mô tả PR tiếng Việt và checklist review: [docs/PR_DAY7.md](docs/PR_DAY7.md). Kết quả chạy thực tế: [docs/DAY7_VALIDATION.md](docs/DAY7_VALIDATION.md).
-
-Các lựa chọn cần xác nhận với thầy: dùng file riêng theo APP_ENV; tắt docs ở prod nhưng cho phép override; migration tự chạy khi container khởi động; Docker được triển khai đầy đủ dù đề ghi optional. Đây là các quyết định triển khai hiện tại, chưa phải xác nhận từ thầy.
