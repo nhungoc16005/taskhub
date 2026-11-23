@@ -1,5 +1,6 @@
 import os
 
+os.environ["APP_ENV"] = "test"
 os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite://")
 os.environ.setdefault("SECRET_KEY", "test-secret-key-test-secret-key-1234567890")
 

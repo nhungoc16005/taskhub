@@ -32,3 +32,14 @@ CACHE_VERSION_BITS = 48
 DEFAULT_LOG_LEVEL = "INFO"
 REQUEST_ID_HEADER = "X-Request-ID"
 MAX_REQUEST_ID_LENGTH = 128
+DEFAULT_APP_ENV = "dev"
+ENV_FILES = {"dev": ".env.dev", "test": ".env.test", "prod": ".env.prod"}
+PRODUCTION_SECRET_MIN_UNIQUE_CHARACTERS = 12
+SAMPLE_SECRET_MARKERS = (
+    "change-me",
+    "changeme",
+    "replace-me",
+    "your-secret",
+    "dev-only",
+    "test-secret",
+)
