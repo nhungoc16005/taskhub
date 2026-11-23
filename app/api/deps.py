@@ -3,12 +3,13 @@ from functools import partial
 from typing import Annotated
 
 from fastapi import Depends, Request
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core import messages
 from app.core.cache import TaskCache
 from app.core.database import get_db
-from app.core.exceptions import ForbiddenError
+from app.core.exceptions import ForbiddenError, UnauthorizedError
 from app.models.comment import Comment
 from app.models.label import Label
 from app.models.project import Project
@@ -33,7 +34,12 @@ from app.services.task_service import TaskService
 from app.services.user_service import UserService
 from app.services.workspace_service import WorkspaceService
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+bearer_scheme = HTTPBearer(
+    scheme_name="BearerAuth",
+    bearerFormat="JWT",
+    auto_error=False,
+    description="Đăng nhập tại /api/v1/auth/login, sau đó dán access_token vào đây (không thêm tiền tố Bearer).",
+)
 
 DbSession = Annotated[AsyncSession, Depends(get_db)]
 
@@ -78,10 +84,12 @@ AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
 
 
 async def get_current_user(
-    token: Annotated[str, Depends(oauth2_scheme)],
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
     service: AuthServiceDep,
 ) -> User:
-    return await service.get_current_user(token)
+    if credentials is None:
+        raise UnauthorizedError(messages.COULD_NOT_VALIDATE)
+    return await service.get_current_user(credentials.credentials)
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]

@@ -43,3 +43,5 @@ SAMPLE_SECRET_MARKERS = (
     "dev-only",
     "test-secret",
 )
+API_TITLE = "TaskHub API"
+API_VERSION = "0.7.0"

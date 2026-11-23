@@ -10,6 +10,7 @@ from app.api.deps import (
     ViewableProject,
     ViewableTask,
 )
+from app.api.documentation import TASK_EXAMPLE
 from app.api.pagination import PaginationDep
 from app.api.responses import RESOURCE_RESPONSES
 from app.core.enums import TaskPriority, TaskStatus
@@ -25,6 +26,9 @@ router = APIRouter(tags=["tasks"], responses=RESOURCE_RESPONSES)
     response_model=TaskRead,
     status_code=status.HTTP_201_CREATED,
     summary="Create task",
+    openapi_extra={
+        "requestBody": {"content": {"application/json": {"example": TASK_EXAMPLE}}}
+    },
 )
 async def create_task(
     data: TaskCreate,
