@@ -24,7 +24,9 @@ task_labels = Table(
 
 class Label(Base):
     __tablename__ = "labels"
-    __table_args__ = (UniqueConstraint("project_id", "name", name="uq_labels_project_name"),)
+    __table_args__ = (
+        UniqueConstraint("project_id", "name", name="uq_labels_project_name"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     project_id: Mapped[int] = mapped_column(

@@ -10,6 +10,7 @@ from app.models.user import User
 from app.repositories.user_repository import UserRepository
 from app.schemas.common import Page, Pagination
 from app.schemas.user import UserCreate, UserUpdate
+from app.services.updates import update_from_schema
 
 
 class UserService:
@@ -28,7 +29,7 @@ class UserService:
             return await self.repo.create(user_data)
         except IntegrityError:
             # 2 request đăng ký cùng lúc: request sau vi phạm UNIQUE(email)
-            raise EmailAlreadyExistsError()
+            raise EmailAlreadyExistsError() from None
 
     async def get_user(self, user_id: int) -> User:
         user = await self.repo.get(user_id)
@@ -44,7 +45,7 @@ class UserService:
 
     async def update_user(self, user_id: int, data: UserUpdate) -> User:
         user = await self.get_user(user_id)
-        return await self.repo.update(user, data.model_dump(exclude_unset=True))
+        return await update_from_schema(self.repo, user, data)
 
     async def delete_user(self, user_id: int) -> None:
         user = await self.get_user(user_id)
@@ -52,4 +53,4 @@ class UserService:
             await self.repo.delete(user)
         except IntegrityError:
             # user còn workspace/task tham chiếu tới -> vi phạm FK
-            raise UserInUseError()
+            raise UserInUseError() from None

@@ -58,7 +58,7 @@ class AuthService:
             payload = decode_token(token, ACCESS_TOKEN_TYPE)
             user_id = int(payload["sub"])
         except (TokenError, KeyError, ValueError):
-            raise InvalidCredentialsError(messages.COULD_NOT_VALIDATE)
+            raise InvalidCredentialsError(messages.COULD_NOT_VALIDATE) from None
 
         user = await self.user_repo.get(user_id)
         if user is None:
@@ -81,7 +81,7 @@ class AuthService:
         try:
             payload = decode_token(refresh_token, REFRESH_TOKEN_TYPE)
         except TokenError:
-            raise InvalidTokenError()
+            raise InvalidTokenError() from None
 
         record = await self.token_repo.get_by_jti(payload["jti"])
         if record is not None and record.revoked_at is None:
@@ -104,7 +104,7 @@ class AuthService:
         try:
             payload = decode_token(refresh_token, REFRESH_TOKEN_TYPE)
         except TokenError:
-            raise InvalidTokenError()
+            raise InvalidTokenError() from None
 
         record = await self.token_repo.get_by_jti(payload["jti"])
         if record is None or record.revoked_at is not None:

@@ -50,18 +50,20 @@ class Settings(BaseSettings):
         selected = values.get("APP_ENV", os.getenv("APP_ENV"))
         app_env = selected if selected is not None else DEFAULT_APP_ENV
         if "_env_file" not in values:
-            env_file = ENV_FILES.get(app_env)
-            env_file = PROJECT_ROOT / env_file if env_file else None
-            if app_env == AppEnv.DEV and not env_file.is_file():
-                env_file = PROJECT_ROOT / ".env"
-            values["_env_file"] = env_file
-        env_file = values["_env_file"]
-        if env_file is not None:
-            env_file = Path(env_file)
-            if not env_file.is_absolute():
-                env_file = PROJECT_ROOT / env_file
-            values["_env_file"] = env_file
-            file_env = dotenv_values(env_file).get("APP_ENV")
+            raw_env_file = ENV_FILES.get(app_env)
+            target_env_file = PROJECT_ROOT / raw_env_file if raw_env_file else None
+            if app_env == AppEnv.DEV and (
+                target_env_file is None or not target_env_file.is_file()
+            ):
+                target_env_file = PROJECT_ROOT / ".env"
+            values["_env_file"] = target_env_file
+        configured_env_file = values.get("_env_file")
+        if configured_env_file is not None:
+            resolved_env_file = Path(configured_env_file)
+            if not resolved_env_file.is_absolute():
+                resolved_env_file = PROJECT_ROOT / resolved_env_file
+            values["_env_file"] = resolved_env_file
+            file_env = dotenv_values(resolved_env_file).get("APP_ENV")
             if file_env is not None:
                 if selected is not None and file_env != selected:
                     raise ValueError(messages.APP_ENV_MISMATCH)
