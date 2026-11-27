@@ -8,12 +8,12 @@ from app.api.deps import (
     ViewableTask,
 )
 from app.api.pagination import PaginationDep
-from app.api.responses import RESOURCE_RESPONSES
+from app.api.responses import error_responses
 from app.models.comment import Comment
 from app.schemas.comment import CommentCreate, CommentRead
 from app.schemas.common import Page
 
-router = APIRouter(tags=["comments"], responses=RESOURCE_RESPONSES)
+router = APIRouter(tags=["comments"])
 
 
 @router.post(
@@ -21,6 +21,15 @@ router = APIRouter(tags=["comments"], responses=RESOURCE_RESPONSES)
     response_model=CommentRead,
     status_code=status.HTTP_201_CREATED,
     summary="Create comment",
+    responses=error_responses(
+        401,
+        403,
+        404,
+        409,
+        422,
+        500,
+        descriptions={403: "Inactive user or insufficient permissions"},
+    ),
 )
 async def create_comment(
     data: CommentCreate,
@@ -33,7 +42,16 @@ async def create_comment(
 
 @router.get(
     "/tasks/{task_id}/comments",
-    response_model=Page[CommentRead], summary="List comments",
+    response_model=Page[CommentRead],
+    summary="List comments",
+    responses=error_responses(
+        401,
+        403,
+        404,
+        422,
+        500,
+        descriptions={403: "Inactive user or insufficient permissions"},
+    ),
 )
 async def list_comments(
     task: ViewableTask,
@@ -45,9 +63,17 @@ async def list_comments(
 
 @router.delete(
     "/comments/{comment_id}",
-    status_code=status.HTTP_204_NO_CONTENT, summary="Delete comment",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete comment",
+    responses=error_responses(
+        401,
+        403,
+        404,
+        409,
+        422,
+        500,
+        descriptions={403: "Inactive user or insufficient permissions"},
+    ),
 )
-async def delete_comment(
-    comment: DeletableComment, service: CommentServiceDep
-) -> None:
+async def delete_comment(comment: DeletableComment, service: CommentServiceDep) -> None:
     await service.delete(comment)
