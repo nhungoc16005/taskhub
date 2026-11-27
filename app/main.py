@@ -1,16 +1,34 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from redis.asyncio import Redis
+from redis.asyncio.retry import Retry
+from redis.backoff import NoBackoff
 
 from app.api.v1.router import api_router
+from app.core.cache import TaskCache
+from app.core.config import settings
 from app.core.database import engine
 from app.core.error_handlers import register_exception_handlers
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    yield
-    await engine.dispose()
+    redis = Redis.from_url(
+        settings.REDIS_URL,
+        decode_responses=True,
+        socket_connect_timeout=settings.REDIS_TIMEOUT_SECONDS,
+        socket_timeout=settings.REDIS_TIMEOUT_SECONDS,
+        retry=Retry(NoBackoff(), 0),
+    )
+    app.state.task_cache = TaskCache(redis, settings.CACHE_TTL_SECONDS)
+    try:
+        yield
+    finally:
+        try:
+            await redis.aclose()
+        finally:
+            await engine.dispose()
 
 
 app = FastAPI(title="TaskHub", lifespan=lifespan)

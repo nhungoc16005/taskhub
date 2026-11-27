@@ -1,5 +1,6 @@
 from sqlalchemy.exc import IntegrityError
 
+from app.core.cache import TaskCache
 from app.core.exceptions import (
     AlreadyMemberError,
     CannotDemoteOwnerError,
@@ -33,11 +34,13 @@ class WorkspaceService:
         member_repo: WorkspaceMemberRepository,
         user_repo: UserRepository,
         task_repo: TaskRepository,
+        cache: TaskCache,
     ):
         self.repo = repo
         self.member_repo = member_repo
         self.user_repo = user_repo
         self.task_repo = task_repo
+        self.cache = cache
 
     async def get_with_role(
         self, user: User, workspace_id: int, required: WorkspaceRole
@@ -106,8 +109,12 @@ class WorkspaceService:
         if member is None:
             raise MemberNotFoundError()
         async with transaction(self.member_repo.session):
-            await self.task_repo.unassign_in_workspace(workspace.id, user_id)
+            project_ids = await self.task_repo.unassign_in_workspace(
+                workspace.id, user_id
+            )
             await self.member_repo.remove(member)
+        for project_id in project_ids:
+            await self.cache.invalidate(project_id)
 
     async def update_member(
         self, workspace: Workspace, user_id: int, data: MemberUpdate
