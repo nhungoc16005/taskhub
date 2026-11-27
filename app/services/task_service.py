@@ -16,9 +16,11 @@ from app.models.workspace import WorkspaceRole
 from app.repositories.task_repository import TaskRepository
 from app.schemas.common import Page, Pagination
 from app.schemas.task import TaskCreate, TaskRead, TaskUpdate
+from app.services.email_service import BackgroundQueue, EmailService
 from app.services.project_service import ProjectService
 from app.services.resource_policy import AuthorizedResource, ProjectResourcePolicy
 from app.services.transaction import transaction
+from app.services.user_service import UserService
 from app.services.workspace_service import WorkspaceService
 
 logger = logging.getLogger(__name__)
@@ -31,12 +33,16 @@ class TaskService:
         project_service: ProjectService,
         workspace_service: WorkspaceService,
         cache: TaskCache,
+        users: UserService,
+        email: EmailService,
     ):
         self.repo = repo
         self.project_service = project_service
         self.workspace_service = workspace_service
         self.policy = ProjectResourcePolicy(project_service)
         self.cache = cache
+        self.users = users
+        self.email = email
 
     async def get_with_role(
         self,
@@ -54,20 +60,40 @@ class TaskService:
         if not await self.workspace_service.is_member(workspace_id, assignee_id):
             raise AssigneeNotMemberError()
 
+    async def _recipient(
+        self, user: User, new: int | None, old: int | None
+    ) -> int | None:
+        if new is None or new == old or new == user.id:
+            return None
+        recipient = await self.users.get_user(new)
+        return recipient.id if recipient.is_active else None
+
+    def _schedule_email(
+        self, background: BackgroundQueue, recipient: int | None, task: Task
+    ) -> None:
+        if recipient is not None:
+            # Pass plain values; background delivery must not access request-scoped ORM/session.
+            background.add_task(
+                self.email.deliver_assignment, recipient, task.id
+            )
+
     async def create(
         self,
         user: User,
         project: Project,
         data: TaskCreate,
+        background: BackgroundQueue,
     ) -> Task:
         self.project_service.ensure_writable(project)
         if data.assignee_id is not None:
             await self._check_assignee(project.workspace_id, data.assignee_id)
+        recipient = await self._recipient(user, data.assignee_id, None)
         async with transaction(self.repo.session):
             task = await self.repo.create(
                 {**data.model_dump(), "project_id": project.id, "created_by": user.id}
             )
         await self.cache.invalidate(project.id)
+        self._schedule_email(background, recipient, task)
         return task
 
     async def list_by_project(
@@ -108,15 +134,21 @@ class TaskService:
         self,
         access: AuthorizedResource[Task],
         data: TaskUpdate,
+        user: User,
+        background: BackgroundQueue,
     ) -> Task:
         changes = data.model_dump(exclude_unset=True)
         if changes.get("assignee_id") is not None:
             await self._check_assignee(
                 access.project.workspace_id, changes["assignee_id"]
             )
+        recipient = await self._recipient(
+            user, changes.get("assignee_id"), access.resource.assignee_id
+        )
         async with transaction(self.repo.session):
             task = await self.repo.update(access.resource, changes)
         await self.cache.invalidate(access.project.id)
+        self._schedule_email(background, recipient, task)
         return task
 
     async def delete(self, user: User, access: AuthorizedResource[Task]) -> None:

@@ -25,6 +25,7 @@ from app.repositories.workspace_member_repository import WorkspaceMemberReposito
 from app.repositories.workspace_repository import WorkspaceRepository
 from app.services.auth_service import AuthService
 from app.services.comment_service import CommentService
+from app.services.email_service import EmailService
 from app.services.label_service import LabelService
 from app.services.project_service import ProjectService
 from app.services.resource_policy import AuthorizedResource
@@ -42,6 +43,13 @@ def get_task_cache(request: Request) -> TaskCache:
 
 
 TaskCacheDep = Annotated[TaskCache, Depends(get_task_cache)]
+
+
+def get_email_service() -> EmailService:
+    return EmailService()
+
+
+EmailServiceDep = Annotated[EmailService, Depends(get_email_service)]
 
 
 def get_user_repo(db: DbSession) -> UserRepository:
@@ -170,9 +178,11 @@ def get_task_service(
     project_service: ProjectServiceDep,
     workspace_service: WorkspaceServiceDep,
     cache: TaskCacheDep,
+    users: UserServiceDep,
+    email: EmailServiceDep,
 ) -> TaskService:
     return TaskService(
-        TaskRepository(db), project_service, workspace_service, cache
+        TaskRepository(db), project_service, workspace_service, cache, users, email
     )
 
 

@@ -5,7 +5,7 @@ from app.core import messages
 
 class AppError(Exception):
     status_code = 500
-    message = "Internal server error"
+    message = messages.INTERNAL_SERVER_ERROR
     headers: ClassVar[dict[str, str] | None] = None
 
     def __init__(self, message: str | None = None):
