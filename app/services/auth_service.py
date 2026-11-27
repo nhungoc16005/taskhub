@@ -13,8 +13,8 @@ from app.core.security import (
     create_access_token,
     create_refresh_token,
     decode_token,
-    hash_password,
-    verify_password,
+    hash_password_async,
+    verify_password_async,
 )
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
@@ -29,7 +29,9 @@ class AuthService:
 
     async def authenticate(self, email: str, password: str) -> User:
         user = await self.user_repo.get_by_email(email.lower())
-        if user is None or not verify_password(password, user.hashed_password):
+        if user is None or not await verify_password_async(
+            password, user.hashed_password
+        ):
             raise InvalidCredentialsError()
         if not user.is_active:
             raise InactiveUserError()
@@ -90,14 +92,13 @@ class AuthService:
     async def change_password(
         self, user: User, current_password: str, new_password: str
     ) -> None:
-        if not verify_password(current_password, user.hashed_password):
+        if not await verify_password_async(current_password, user.hashed_password):
             raise InvalidPasswordError(messages.CURRENT_PASSWORD_INCORRECT)
-        if verify_password(new_password, user.hashed_password):
+        if await verify_password_async(new_password, user.hashed_password):
             raise InvalidPasswordError(messages.NEW_PASSWORD_SAME_AS_CURRENT)
 
-        await self.user_repo.update(
-            user, {"hashed_password": hash_password(new_password)}
-        )
+        hashed = await hash_password_async(new_password)
+        await self.user_repo.update(user, {"hashed_password": hashed})
         await self.token_repo.revoke_all_for_user(user.id)
 
     async def _get_valid_record(self, refresh_token: str) -> RefreshToken:
