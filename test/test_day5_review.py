@@ -199,4 +199,5 @@ def test_day5_openapi_documents_filters_pagination_and_errors():
     ):
         operation = schema["paths"][path][method]
         assert operation["summary"]
-        assert {"400", "403", "404", "409"} <= operation["responses"].keys()
+        assert {"401", "403", "404", "409"} <= operation["responses"].keys()
+        assert "400" not in operation["responses"]

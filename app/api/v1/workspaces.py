@@ -6,7 +6,9 @@ from app.api.deps import (
     ViewableWorkspace,
     WorkspaceServiceDep,
 )
+from app.api.documentation import WORKSPACE_EXAMPLE
 from app.api.pagination import PaginationDep
+from app.api.responses import error_responses
 from app.schemas.common import Page
 from app.schemas.workspace import (
     MemberInvite,
@@ -20,14 +22,40 @@ from app.schemas.workspace import (
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
 
 
-@router.post("", response_model=WorkspaceRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=WorkspaceRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a workspace",
+    openapi_extra={
+        "requestBody": {"content": {"application/json": {"example": WORKSPACE_EXAMPLE}}}
+    },
+    responses=error_responses(
+        401,
+        403,
+        422,
+        500,
+        descriptions={403: "Inactive user or insufficient permissions"},
+    ),
+)
 async def create_workspace(
     data: WorkspaceCreate, current_user: CurrentUser, service: WorkspaceServiceDep
 ):
     return await service.create(current_user, data)
 
 
-@router.get("", response_model=Page[WorkspaceRead])
+@router.get(
+    "",
+    response_model=Page[WorkspaceRead],
+    summary="List my workspaces",
+    responses=error_responses(
+        401,
+        403,
+        422,
+        500,
+        descriptions={403: "Inactive user or insufficient permissions"},
+    ),
+)
 async def list_my_workspaces(
     current_user: CurrentUser,
     service: WorkspaceServiceDep,
@@ -36,24 +64,72 @@ async def list_my_workspaces(
     return await service.list_for_user(current_user, pagination)
 
 
-@router.get("/{workspace_id}", response_model=WorkspaceRead)
+@router.get(
+    "/{workspace_id}",
+    response_model=WorkspaceRead,
+    summary="Get a workspace",
+    responses=error_responses(
+        401,
+        403,
+        404,
+        422,
+        500,
+        descriptions={403: "Inactive user or insufficient permissions"},
+    ),
+)
 async def get_workspace(workspace: ViewableWorkspace):
     return workspace
 
 
-@router.patch("/{workspace_id}", response_model=WorkspaceRead)
+@router.patch(
+    "/{workspace_id}",
+    response_model=WorkspaceRead,
+    summary="Update a workspace",
+    responses=error_responses(
+        401,
+        403,
+        404,
+        422,
+        500,
+        descriptions={403: "Inactive user or insufficient permissions"},
+    ),
+)
 async def update_workspace(
     data: WorkspaceUpdate, workspace: OwnedWorkspace, service: WorkspaceServiceDep
 ):
     return await service.update(workspace, data)
 
 
-@router.delete("/{workspace_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{workspace_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a workspace",
+    responses=error_responses(
+        401,
+        403,
+        404,
+        422,
+        500,
+        descriptions={403: "Inactive user or insufficient permissions"},
+    ),
+)
 async def delete_workspace(workspace: OwnedWorkspace, service: WorkspaceServiceDep):
     await service.delete(workspace)
 
 
-@router.get("/{workspace_id}/members", response_model=list[MemberRead])
+@router.get(
+    "/{workspace_id}/members",
+    response_model=list[MemberRead],
+    summary="List workspace members",
+    responses=error_responses(
+        401,
+        403,
+        404,
+        422,
+        500,
+        descriptions={403: "Inactive user or insufficient permissions"},
+    ),
+)
 async def list_members(workspace: ViewableWorkspace, service: WorkspaceServiceDep):
     return await service.list_members(workspace)
 
@@ -62,6 +138,20 @@ async def list_members(workspace: ViewableWorkspace, service: WorkspaceServiceDe
     "/{workspace_id}/members",
     response_model=MemberRead,
     status_code=status.HTTP_201_CREATED,
+    summary="Invite a workspace member",
+    responses=error_responses(
+        401,
+        403,
+        404,
+        409,
+        422,
+        500,
+        descriptions={
+            403: "Inactive user or insufficient permissions",
+            404: "Workspace or invited user not found",
+            409: "User is already a workspace member",
+        },
+    ),
 )
 async def invite_member(
     data: MemberInvite, workspace: OwnedWorkspace, service: WorkspaceServiceDep
@@ -70,7 +160,22 @@ async def invite_member(
 
 
 @router.delete(
-    "/{workspace_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT
+    "/{workspace_id}/members/{user_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Remove a workspace member",
+    responses=error_responses(
+        400,
+        401,
+        403,
+        404,
+        422,
+        500,
+        descriptions={
+            403: "Inactive user or insufficient permissions",
+            400: "Owner cannot be removed",
+            404: "Workspace or member not found",
+        },
+    ),
 )
 async def remove_member(
     user_id: int, workspace: OwnedWorkspace, service: WorkspaceServiceDep
@@ -79,11 +184,22 @@ async def remove_member(
 
 
 @router.patch(
-    "/{workspace_id}/members/{user_id}", response_model=MemberRead,
+    "/{workspace_id}/members/{user_id}",
+    response_model=MemberRead,
     summary="Change a workspace member role",
-    responses={400: {"description": "Owner role cannot be changed"},
-               403: {"description": "Insufficient permissions"},
-               404: {"description": "Workspace or member not found"}},
+    responses=error_responses(
+        400,
+        401,
+        403,
+        404,
+        422,
+        500,
+        descriptions={
+            403: "Inactive user or insufficient permissions",
+            400: "Owner role cannot be changed",
+            404: "Workspace or member not found",
+        },
+    ),
 )
 async def update_member(
     user_id: int,
@@ -91,4 +207,6 @@ async def update_member(
     workspace: OwnedWorkspace,
     service: WorkspaceServiceDep,
 ) -> MemberRead:
-    return MemberRead.model_validate(await service.update_member(workspace, user_id, data))
+    return MemberRead.model_validate(
+        await service.update_member(workspace, user_id, data)
+    )
