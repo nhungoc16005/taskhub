@@ -1,5 +1,126 @@
 # TaskHub
 
+## Kiến trúc và quyết định thiết kế
+
+Luồng xử lý: **API/dependency → service → repository → SQLAlchemy model → DB**.
+`app/api` nhận request và gắn dependency xác thực; `app/schemas` mô tả dữ liệu
+Pydantic; `app/services` xử lý nghiệp vụ, phân quyền và chuyển schema thành dữ liệu
+cập nhật; `app/repositories` truy vấn/lưu dữ liệu; `app/models` khai báo bảng và quan hệ.
+`app/core` chứa cấu hình, bảo mật, cache, logging và các thành phần dùng chung.
+
+`resolve_nested_resource` thống nhất cách tìm tài nguyên con và kiểm tra quyền qua
+cha. `ProjectResourcePolicy` dùng chung cho task/label; dependency `require_role`
+khai báo vai trò cần thiết ngay tại route. Không gộp các quy tắc nghiệp vụ khác nhau
+chỉ vì chúng có cùng tên hàm. `update_from_schema` dùng `exclude_unset=True` để
+PATCH phân biệt trường không gửi với trường gửi `null`; repository chỉ nhận dict,
+không phụ thuộc Pydantic.
+
+`BaseRepository` dùng chung CRUD và commit cho thao tác đơn. Với task, label,
+comment, `TransactionalRepository` chỉ flush: service điều phối commit/rollback
+cho nhiều thao tác liên quan, rồi mới vô hiệu hóa cache. Một số repository chuyên
+biệt như membership quản lý khóa ghép và các thao tác riêng; không ép chúng vào
+CRUD theo ID đơn. Đây là quy ước hiện tại, chưa phải Unit of Work thống nhất toàn ứng dụng.
+
+### Schema và tính toàn vẹn
+
+| Bảng | Vai trò và ràng buộc chính |
+| --- | --- |
+| `users` | Tài khoản, email duy nhất, mật khẩu băm, vai trò hệ thống và trạng thái hoạt động |
+| `workspaces` | Không gian làm việc, tham chiếu chủ sở hữu |
+| `workspace_members` | Quan hệ user–workspace; khóa chính ghép `(workspace_id, user_id)`, vai trò OWNER/EDITOR/VIEWER |
+| `projects` | Thuộc workspace, hỗ trợ archive |
+| `tasks` | Thuộc project, người tạo, người được giao, trạng thái, ưu tiên và hạn hoàn thành |
+| `labels` | Thuộc project; tên duy nhất trong cùng project |
+| `task_labels` | Bảng nối nhiều–nhiều task/label, khóa ghép ngăn gắn trùng |
+| `comments` | Thuộc task, tham chiếu tác giả |
+| `refresh_tokens` | Lưu JTI, thời hạn và trạng thái thu hồi refresh token |
+
+Khóa ngoại và unique constraint bảo vệ dữ liệu ngay tại DB. Các cột quan hệ dùng
+để tìm kiếm có index; không thêm index cho mọi cột vì tăng chi phí ghi và dung lượng.
+Xóa project kéo theo tài nguyên con; xóa assignee đặt `tasks.assignee_id` về NULL,
+trong khi tham chiếu người tạo task dùng RESTRICT. Migration là nguồn lịch sử schema:
+chạy `alembic upgrade head`, không sửa migration đã áp dụng để đổi cấu trúc mới.
+
+### Phân quyền và xác thực
+
+Vai trò hệ thống ADMIN có quyền vượt kiểm tra membership. Trong workspace,
+OWNER quản lý thành viên và tài nguyên, EDITOR được thao tác ghi được cho phép,
+VIEWER chỉ đọc. Quy tắc tác giả/chủ sở hữu được kiểm tra thêm ở thao tác tương ứng.
+Tài nguyên ngoài workspace người gọi được trả 404 để tránh tiết lộ sự tồn tại;
+thành viên thiếu quyền nhận 403. Project đã archive chặn thao tác ghi kể cả ADMIN.
+Tài khoản bị khóa không được tiếp tục sử dụng API bảo vệ.
+
+Access token JWT mặc định sống 30 phút, refresh token 7 ngày. Refresh token có
+JTI lưu tại DB để hỗ trợ thu hồi; logout và đổi mật khẩu áp dụng thu hồi theo
+nghiệp vụ tương ứng. Không lưu mật khẩu thô. Bcrypt chạy qua `asyncio.to_thread`
+ở đăng ký, đăng nhập và đổi mật khẩu, để công việc CPU không chặn event loop.
+Thread không làm giảm chi phí bcrypt; tải đăng nhập lớn vẫn cần giới hạn lưu lượng
+ở tầng triển khai và đo CPU/thread pool trên môi trường thực tế.
+
+### Cache và truy vấn
+
+Redis cache danh sách task với TTL mặc định 60 giây. Key phân biệt project,
+phiên bản và các tham số lọc/phân trang/sắp xếp. Quyền truy cập được kiểm tra
+**trước** khi đọc cache; cache không thay thế authorization. Sau khi transaction
+ghi thành công, service invalidation cache. Redis lỗi thì API dùng DB; invalidation
+là best-effort, nên worker khác có thể thấy dữ liệu cũ tới hết TTL.
+
+Danh sách task trả các trường scalar, không tải từng quan hệ trong vòng lặp.
+Danh sách thành viên dùng `selectinload(user)` để tránh N+1. Kiểm thử Day 8 đếm
+hai truy vấn cho một trang task kèm count (cả 1 và 12 task), và hai truy vấn cho
+danh sách 8 thành viên kèm dữ liệu user. Đây là kiểm tra đường truy vấn cụ thể,
+không phải khẳng định mọi endpoint luôn có hai truy vấn.
+
+Migration `e5b7218cf012` thêm index `(project_id, status, priority, id)` cho lọc
+đồng thời project/status/priority và sắp xếp theo ID. Index này không thay thế
+mọi index hay tối ưu mọi tổ hợp lọc/sort. Test kiểm tra upgrade/downgrade, giữ dữ
+liệu và query plan SQLite. Trước triển khai DB lớn, cần đo `EXPLAIN (ANALYZE,
+BUFFERS)` trên PostgreSQL với dữ liệu đại diện; tạo index thường có thể chặn ghi.
+
+### Connection pool và đo hiệu năng
+
+| Biến app | Mặc định | Ý nghĩa |
+| --- | --- | --- |
+| `DB_POOL_SIZE` | 5 | Số connection giữ trong pool, tối thiểu 1 |
+| `DB_MAX_OVERFLOW` | 10 | Connection bổ sung khi tải tăng, tối thiểu 0 |
+| `DB_POOL_TIMEOUT_SECONDS` | 30 | Thời gian chờ lấy connection, số dương hữu hạn |
+| `DB_POOL_RECYCLE_SECONDS` | 1800 | Tuổi connection trước khi tái tạo lúc checkout, tối thiểu 1 |
+
+Compose dùng các biến cùng tên với tiền tố `TASKHUB_`, ví dụ
+`TASKHUB_DB_POOL_SIZE=5`. PostgreSQL bật `pool_pre_ping` để kiểm tra connection
+trước sử dụng. SQLite test không nhận các tùy chọn pool PostgreSQL. Pool thuộc
+từng process: với N worker, trần theo cấu hình mặc định là `N × (5 + 10)` connection;
+cần chừa ngân sách DB cho migration và ứng dụng khác. Recycle không ngắt một
+transaction đang chạy.
+
+Chạy phép đo độc lập, không truy cập DB hay tài khoản thật:
+
+```powershell
+venv/Scripts/python.exe -m scripts.benchmark_bcrypt --rounds 12 --operations 4
+```
+
+Kết quả JSON so sánh thời gian tổng và độ trễ lớn nhất của heartbeat event loop
+khi bcrypt chạy trực tiếp hoặc trong thread. Số đo phụ thuộc máy/tải; đây không
+phải load test HTTP hay cam kết độ trễ production. Test tự động còn xác minh
+hash/verify thực sự chạy ngoài thread event loop ở các luồng xác thực.
+
+### Quy chuẩn chất lượng
+
+Ruff lint/format và mypy được cấu hình trong `pyproject.toml`, nhắm Python 3.12.
+Mypy kiểm tra cả thân hàm chưa có annotation và không bỏ qua toàn bộ import thiếu
+kiểu; dự án dùng gradual typing, chưa bật strict cho mọi hàm. Migration lịch sử
+được loại khỏi Ruff để giữ nguyên file đã áp dụng; migration Day 8 được kiểm tra riêng:
+
+```powershell
+venv/Scripts/python.exe -m ruff check alembic/versions/e5b7218cf012_task_composite_index.py
+venv/Scripts/python.exe -m ruff format --check alembic/versions/e5b7218cf012_task_composite_index.py
+```
+
+Để tự sửa format dùng `python -m ruff format .`. Bộ kiểm thử chính ở `test/`;
+script đo có mục đích rõ ràng ở `scripts/`. Không dùng các script thử tạm ở root
+như `check_db.py` hay `test_jwt.py` làm công cụ vận hành. Pytest dùng riêng
+`.pytest_tmp/tests` để không dọn nhầm các artifact khác trong `.pytest_tmp`.
+
 API quản lý công việc theo workspace, xây dựng bằng FastAPI, SQLAlchemy async, Pydantic và PostgreSQL. Redis cache danh sách task; phân quyền theo workspace; email gán task hiện được ghi log bằng background task.
 
 ## Chạy nhanh bằng Docker
@@ -137,7 +258,9 @@ Migration tự chạy ở mỗi lần container app khởi động. Với một 
 ```powershell
 venv/Scripts/python.exe -m pip install -r requirements-dev.txt
 venv/Scripts/python.exe -m pytest -q test -p no:cacheprovider
-venv/Scripts/ruff.exe check app test alembic
+venv/Scripts/python.exe -m ruff check .
+venv/Scripts/python.exe -m ruff format --check .
+venv/Scripts/python.exe -m mypy app
 docker compose config --quiet
 ```
 
