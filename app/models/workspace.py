@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from app.models.user import User
 
 
-class WorkspaceRole(str, enum.Enum):
+class WorkspaceRole(enum.StrEnum):
     OWNER = "OWNER"
     EDITOR = "EDITOR"
     VIEWER = "VIEWER"

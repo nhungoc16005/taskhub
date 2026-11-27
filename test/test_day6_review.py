@@ -39,7 +39,11 @@ async def test_delivery_failure_does_not_log_provider_pii(caplog):
 
 @pytest.mark.parametrize("operation", ["create", "update"])
 async def test_inactive_assignee_receives_no_email(
-    client, team, session_factory, email_delivery, operation  # noqa: F811
+    client,
+    team,
+    session_factory,
+    email_delivery,  # noqa: F811
+    operation,  # noqa: F811
 ):
     user_id = team["people"]["viewer"]["user"]["id"]
     async with session_factory() as session:

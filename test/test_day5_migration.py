@@ -9,7 +9,10 @@ from sqlalchemy.exc import IntegrityError
 
 
 def load_revision():
-    path = Path(__file__).resolve().parents[1] / "alembic/versions/a24d5e9b0011_label_names_and_author_fks.py"
+    path = (
+        Path(__file__).resolve().parents[1]
+        / "alembic/versions/a24d5e9b0011_label_names_and_author_fks.py"
+    )
     spec = importlib.util.spec_from_file_location("day5_revision", path)
     revision = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(revision)
@@ -23,8 +26,10 @@ def seed(connection):
         "CREATE TABLE tasks (id INTEGER PRIMARY KEY, created_by INTEGER NOT NULL REFERENCES users(id))",
         "CREATE TABLE comments (id INTEGER PRIMARY KEY, task_id INTEGER REFERENCES tasks(id) ON DELETE CASCADE, author_id INTEGER NOT NULL REFERENCES users(id))",
         "CREATE TABLE labels (id INTEGER PRIMARY KEY, project_id INTEGER REFERENCES projects(id), name VARCHAR(100) NOT NULL)",
-        "INSERT INTO users VALUES (1)", "INSERT INTO projects VALUES (1)",
-        "INSERT INTO tasks VALUES (1, 1)", "INSERT INTO comments VALUES (1, 1, 1)",
+        "INSERT INTO users VALUES (1)",
+        "INSERT INTO projects VALUES (1)",
+        "INSERT INTO tasks VALUES (1, 1)",
+        "INSERT INTO comments VALUES (1, 1, 1)",
         "INSERT INTO labels VALUES (1, 1, 'Bug')",
     ):
         connection.execute(text(statement))
@@ -38,14 +43,22 @@ def test_migration_upgrade_downgrade_preserves_rows():
         revision.op = Operations(MigrationContext.configure(connection))
         revision.upgrade()
         for table in ("tasks", "comments", "labels"):
-            assert connection.execute(text(f"SELECT count(*) FROM {table}")).scalar_one() == 1
+            assert (
+                connection.execute(text(f"SELECT count(*) FROM {table}")).scalar_one()
+                == 1
+            )
         assert connection.exec_driver_sql("PRAGMA foreign_key_check").all() == []
-        assert inspect(connection).get_foreign_keys("tasks")[0]["options"]["ondelete"] == "RESTRICT"
+        assert (
+            inspect(connection).get_foreign_keys("tasks")[0]["options"]["ondelete"]
+            == "RESTRICT"
+        )
         with pytest.raises(IntegrityError):
             connection.execute(text("INSERT INTO labels VALUES (2, 1, 'Bug')"))
         revision.downgrade()
         connection.execute(text("INSERT INTO labels VALUES (2, 1, 'Bug')"))
-        assert connection.execute(text("SELECT count(*) FROM comments")).scalar_one() == 1
+        assert (
+            connection.execute(text("SELECT count(*) FROM comments")).scalar_one() == 1
+        )
     engine.dispose()
 
 

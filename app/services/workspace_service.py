@@ -100,7 +100,7 @@ class WorkspaceService:
         try:
             return await self.member_repo.add(workspace.id, invited.id, data.role)
         except IntegrityError:
-            raise AlreadyMemberError()
+            raise AlreadyMemberError() from None
 
     async def remove_member(self, workspace: Workspace, user_id: int) -> None:
         if user_id == workspace.owner_id:

@@ -22,16 +22,22 @@ class ProjectResourcePolicy:
         self.projects = projects
 
     async def load(
-        self, loader: Callable[[int], Awaitable[T | None]], resource_id: int,
-        user: User, required: WorkspaceRole, missing: type[NotFoundError],
-        *, writable: bool = False,
+        self,
+        loader: Callable[[int], Awaitable[T | None]],
+        resource_id: int,
+        user: User,
+        required: WorkspaceRole,
+        missing: type[NotFoundError],
+        *,
+        writable: bool = False,
     ) -> AuthorizedResource[T]:
         resource = await loader(resource_id)
         if resource is None:
             raise missing()
+        project_id: int = getattr(resource, "project_id")  # noqa: B009
         try:
             project = await self.projects.get_with_role(
-                user, resource.project_id, required, writable=writable
+                user, project_id, required, writable=writable
             )
         except ProjectNotFoundError:
             raise missing() from None

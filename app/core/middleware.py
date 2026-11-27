@@ -22,9 +22,7 @@ class RequestLoggingMiddleware:
             return
         supplied = Headers(scope=scope).get(REQUEST_ID_HEADER, "")
         request_id = (
-            supplied
-            if re.fullmatch(REQUEST_ID_PATTERN, supplied)
-            else str(uuid4())
+            supplied if re.fullmatch(REQUEST_ID_PATTERN, supplied) else str(uuid4())
         )
         scope.setdefault("state", {})["request_id"] = request_id
         started = perf_counter()

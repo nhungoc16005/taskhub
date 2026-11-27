@@ -58,9 +58,9 @@ def decode_token(token: str, expected_type: str) -> dict:
             token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
     except jwt.ExpiredSignatureError:
-        raise TokenError(messages.TOKEN_EXPIRED)
+        raise TokenError(messages.TOKEN_EXPIRED) from None
     except jwt.InvalidTokenError:
-        raise TokenError(messages.TOKEN_INVALID)
+        raise TokenError(messages.TOKEN_INVALID) from None
 
     if payload.get("type") != expected_type:
         raise TokenError(messages.TOKEN_WRONG_TYPE)

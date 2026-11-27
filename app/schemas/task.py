@@ -13,8 +13,9 @@ class TaskCreate(BaseModel):
     description: str | None = Field(None, max_length=DESCRIPTION_MAX_LENGTH)
     priority: TaskPriority = Field(TaskPriority.MEDIUM, description="Task priority")
     due_date: date | None = Field(None, description="Due date (YYYY-MM-DD)")
-    assignee_id: PositiveInt | None = Field(None, description="Id of a workspace member")
-
+    assignee_id: PositiveInt | None = Field(
+        None, description="Id of a workspace member"
+    )
 
     @field_validator("due_date")
     @classmethod
@@ -32,7 +33,6 @@ class TaskUpdate(BaseModel):
     priority: NonNull[TaskPriority] = None
     due_date: date | None = None
     assignee_id: PositiveInt | None = None  # null = bỏ gán
-
 
 
 class TaskRead(BaseModel):
