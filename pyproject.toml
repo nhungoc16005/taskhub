@@ -4,6 +4,7 @@ target-version = "py312"
 extend-exclude = [
     "alembic/versions",
     ".pytest_tmp",
+    ".pytest_tmp-tests",
     ".venv",
     "venv",
     ".review-day4",

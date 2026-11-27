@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     DOCS_ENABLED: bool | None = None
     DATABASE_URL: str
     DB_ECHO: bool = False
+    DB_POOL_SIZE: int = Field(default=5, ge=1)
+    DB_MAX_OVERFLOW: int = Field(default=10, ge=0)
+    DB_POOL_TIMEOUT_SECONDS: float = Field(default=30, gt=0, allow_inf_nan=False)
+    DB_POOL_RECYCLE_SECONDS: int = Field(default=1800, ge=1)
     REDIS_URL: str = DEFAULT_REDIS_URL
     REDIS_TIMEOUT_SECONDS: float = Field(default=0.25, gt=0, allow_inf_nan=False)
     CACHE_TTL_SECONDS: int = Field(DEFAULT_CACHE_TTL_SECONDS, ge=1)

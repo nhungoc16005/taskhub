@@ -5,7 +5,7 @@ from app.core.exceptions import (
     UserInUseError,
     UserNotFoundError,
 )
-from app.core.security import hash_password
+from app.core.security import hash_password_async
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
 from app.schemas.common import Page, Pagination
@@ -24,7 +24,7 @@ class UserService:
 
         user_data = data.model_dump(exclude={"password"})
         user_data["email"] = email
-        user_data["hashed_password"] = hash_password(data.password)
+        user_data["hashed_password"] = await hash_password_async(data.password)
         try:
             return await self.repo.create(user_data)
         except IntegrityError:
