@@ -34,7 +34,13 @@ async def lifespan(app: FastAPI):
 
 
 configure_logging(settings.LOG_LEVEL)
-app = FastAPI(title="TaskHub", lifespan=lifespan)
+app = FastAPI(
+    title="TaskHub",
+    lifespan=lifespan,
+    docs_url="/docs" if settings.DOCS_ENABLED else None,
+    redoc_url="/redoc" if settings.DOCS_ENABLED else None,
+    openapi_url="/openapi.json" if settings.DOCS_ENABLED else None,
+)
 app.add_middleware(RequestLoggingMiddleware)
 register_exception_handlers(app)
 app.include_router(api_router, prefix="/api/v1")
