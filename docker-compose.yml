@@ -1,0 +1,58 @@
+name: taskhub
+
+services:
+  app:
+    build:
+      context: .
+      target: runtime
+    environment:
+      APP_ENV: ${TASKHUB_APP_ENV:-dev}
+      DATABASE_URL: ${TASKHUB_DATABASE_URL:-postgresql+asyncpg://taskhub:taskhub-dev-only@db:5432/taskhub}
+      REDIS_URL: ${TASKHUB_REDIS_URL:-redis://redis:6379/0}
+      SECRET_KEY: ${TASKHUB_SECRET_KEY:-dev-only-taskhub-secret-change-before-production-2026}
+      DB_ECHO: "false"
+      LOG_LEVEL: ${TASKHUB_LOG_LEVEL:-INFO}
+      CACHE_TTL_SECONDS: ${TASKHUB_CACHE_TTL_SECONDS:-60}
+      REDIS_TIMEOUT_SECONDS: ${TASKHUB_REDIS_TIMEOUT_SECONDS:-0.25}
+    ports:
+      - "127.0.0.1:${TASKHUB_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    init: true
+    stop_grace_period: 20s
+
+  db:
+    image: postgres:16-bookworm
+    environment:
+      POSTGRES_DB: taskhub
+      POSTGRES_USER: taskhub
+      POSTGRES_PASSWORD: ${TASKHUB_POSTGRES_PASSWORD:-taskhub-dev-only}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  redis:
+    image: redis:7.4-bookworm
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres_data:
