@@ -1,8 +1,11 @@
 from sqlalchemy.exc import IntegrityError
 
 from app.core.exceptions import (
-    LabelAlreadyAttachedError, LabelNameConflictError, LabelNotAttachedError,
-    LabelNotFoundError, ResourceChangedError,
+    LabelAlreadyAttachedError,
+    LabelNameConflictError,
+    LabelNotAttachedError,
+    LabelNotFoundError,
+    ResourceChangedError,
 )
 from app.core.integrity import is_unique_violation
 from app.models.label import Label

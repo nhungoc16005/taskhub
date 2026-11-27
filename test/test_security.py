@@ -1,6 +1,6 @@
 import pytest
 
-from app.core.constants import ACCESS_TOKEN_TYPE, REFRESH_TOKEN_TYPE
+from app.core.constants import ACCESS_TOKEN_TYPE
 from app.core.security import (
     TokenError,
     create_access_token,

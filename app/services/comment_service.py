@@ -6,8 +6,8 @@ from app.models.workspace import WorkspaceRole
 from app.repositories.comment_repository import CommentRepository
 from app.schemas.comment import CommentCreate
 from app.schemas.common import Page, Pagination
-from app.services.transaction import transaction
 from app.services.task_service import TaskService
+from app.services.transaction import transaction
 
 
 class CommentService:

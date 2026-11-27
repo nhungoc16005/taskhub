@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from app.core import messages
 from app.core.constants import ACCESS_TOKEN_TYPE, REFRESH_TOKEN_TYPE, TOKEN_TYPE_BEARER
@@ -44,7 +44,7 @@ class AuthService:
             {
                 "user_id": user.id,
                 "jti": payload["jti"],
-                "expires_at": datetime.fromtimestamp(payload["exp"], tz=timezone.utc),
+                "expires_at": datetime.fromtimestamp(payload["exp"], tz=UTC),
             }
         )
         return {
@@ -112,7 +112,7 @@ class AuthService:
         # SQLite trả datetime không có timezone, PostgreSQL thì có
         expires_at = record.expires_at
         if expires_at.tzinfo is None:
-            expires_at = expires_at.replace(tzinfo=timezone.utc)
-        if expires_at <= datetime.now(timezone.utc):
+            expires_at = expires_at.replace(tzinfo=UTC)
+        if expires_at <= datetime.now(UTC):
             raise InvalidTokenError()
         return record

@@ -8,7 +8,6 @@ from app.core.constants import (
     LABEL_NAME_MAX_LENGTH,
     NAME_MIN_LENGTH,
 )
-
 from app.schemas.common import NonNull
 
 LabelName = Annotated[
