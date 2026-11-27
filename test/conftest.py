@@ -3,17 +3,17 @@ import os
 os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite://")
 os.environ.setdefault("SECRET_KEY", "test-secret-key-test-secret-key-1234567890")
 
-import pytest_asyncio  # noqa: E402
-import pytest
 import bcrypt
-from httpx import ASGITransport, AsyncClient  # noqa: E402
-from sqlalchemy import event, update  # noqa: E402
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine  # noqa: E402
-from sqlalchemy.pool import StaticPool  # noqa: E402
+import pytest
+import pytest_asyncio
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy import event, update
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.pool import StaticPool
 
-from app.core.database import get_db  # noqa: E402
-from app.main import app  # noqa: E402
-from app.models import Base, User, UserRole  # noqa: E402
+from app.core.database import get_db
+from app.main import app
+from app.models import Base, User, UserRole
 
 PASSWORD = "12345678"
 
@@ -29,14 +29,14 @@ async def team(client, make_user):
     people = {}
     for role in ("owner", "editor", "viewer", "outsider", "admin"):
         user, tokens = await make_user(email=f"{role}@example.com", admin=role == "admin")
-        people[role] = dict(user=user, headers=bearer(tokens))
+        people[role] = {"user": user, "headers": bearer(tokens)}
     owner = people["owner"]["headers"]
     workspace = (await client.post("/api/v1/workspaces", json={"name": "Team"}, headers=owner)).json()
     for role in ("editor", "viewer"):
         response = await client.post(f"/api/v1/workspaces/{workspace['id']}/members", json={"email": people[role]["user"]["email"], "role": role.upper()}, headers=owner)
         assert response.status_code == 201
     project = (await client.post(f"/api/v1/workspaces/{workspace['id']}/projects", json={"name": "Project"}, headers=owner)).json()
-    return dict(people=people, workspace=workspace, project=project)
+    return {"people": people, "workspace": workspace, "project": project}
 
 
 @pytest_asyncio.fixture
