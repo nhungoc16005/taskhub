@@ -1,6 +1,12 @@
 import enum
 
 
+class AppEnv(enum.StrEnum):
+    DEV = "dev"
+    TEST = "test"
+    PROD = "prod"
+
+
 class ProjectStatus(str, enum.Enum):
     ACTIVE = "ACTIVE"
     ARCHIVED = "ARCHIVED"
