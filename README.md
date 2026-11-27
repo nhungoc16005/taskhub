@@ -119,7 +119,8 @@ venv/Scripts/python.exe -m ruff format --check alembic/versions/e5b7218cf012_tas
 Để tự sửa format dùng `python -m ruff format .`. Bộ kiểm thử chính ở `test/`;
 script đo có mục đích rõ ràng ở `scripts/`. Không dùng các script thử tạm ở root
 như `check_db.py` hay `test_jwt.py` làm công cụ vận hành. Pytest dùng riêng
-`.pytest_tmp/tests` để không dọn nhầm các artifact khác trong `.pytest_tmp`.
+`.pytest_tmp-tests` tại root để chạy ngay trên checkout mới và không dọn nhầm
+các artifact khác trong `.pytest_tmp`.
 
 API quản lý công việc theo workspace, xây dựng bằng FastAPI, SQLAlchemy async, Pydantic và PostgreSQL. Redis cache danh sách task; phân quyền theo workspace; email gán task hiện được ghi log bằng background task.
 
