@@ -40,3 +40,6 @@ LABEL_NAME_CONFLICT = "A label with this name already exists in the project"
 RESOURCE_CHANGED = "The task or label changed concurrently; reload and retry"
 FIELD_NOT_NULLABLE = "this field cannot be null"
 DUE_DATE_IN_PAST = "due_date cannot be in the past"
+
+CACHE_UNAVAILABLE = "Task cache unavailable during %s; using database"
+CACHE_INVALID_PAYLOAD = "Invalid task cache payload; using database"
