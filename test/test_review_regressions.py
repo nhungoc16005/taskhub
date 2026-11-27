@@ -1,7 +1,7 @@
 import pytest
+from test_day5 import create_task
 
 from app.core.constants import MAX_PAGE_SIZE
-from test_day5 import create_task
 
 
 @pytest.mark.parametrize("params", [

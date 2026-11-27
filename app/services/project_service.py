@@ -1,5 +1,9 @@
-from app.core.exceptions import ProjectArchivedError, ProjectNotFoundError, WorkspaceNotFoundError
 from app.core.enums import ProjectStatus
+from app.core.exceptions import (
+    ProjectArchivedError,
+    ProjectNotFoundError,
+    WorkspaceNotFoundError,
+)
 from app.models.project import Project
 from app.models.user import User
 from app.models.workspace import Workspace, WorkspaceRole

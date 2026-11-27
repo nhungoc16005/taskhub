@@ -2,8 +2,8 @@ from fastapi import APIRouter, status
 
 from app.api.deps import (
     CommentServiceDep,
-    DeletableComment,
     CurrentUser,
+    DeletableComment,
     EditableTask,
     ViewableTask,
 )

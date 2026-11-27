@@ -3,9 +3,9 @@ from collections.abc import Sequence
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.schemas.common import Pagination
 from app.models.comment import Comment
 from app.repositories.transactional import TransactionalRepository
+from app.schemas.common import Pagination
 
 
 class CommentRepository(TransactionalRepository[Comment]):

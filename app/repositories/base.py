@@ -2,10 +2,10 @@ from collections.abc import Sequence
 from typing import Generic, TypeVar
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.base import Base
-from sqlalchemy.exc import IntegrityError
 
 ModelT = TypeVar("ModelT", bound=Base)
 
