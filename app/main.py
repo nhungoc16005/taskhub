@@ -10,6 +10,8 @@ from app.core.cache import TaskCache
 from app.core.config import settings
 from app.core.database import engine
 from app.core.error_handlers import register_exception_handlers
+from app.core.logging import configure_logging
+from app.core.middleware import RequestLoggingMiddleware
 
 
 @asynccontextmanager
@@ -31,7 +33,9 @@ async def lifespan(app: FastAPI):
             await engine.dispose()
 
 
+configure_logging(settings.LOG_LEVEL)
 app = FastAPI(title="TaskHub", lifespan=lifespan)
+app.add_middleware(RequestLoggingMiddleware)
 register_exception_handlers(app)
 app.include_router(api_router, prefix="/api/v1")
 
