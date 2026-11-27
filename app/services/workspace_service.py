@@ -2,8 +2,8 @@ from sqlalchemy.exc import IntegrityError
 
 from app.core.exceptions import (
     AlreadyMemberError,
-    CannotRemoveOwnerError,
     CannotDemoteOwnerError,
+    CannotRemoveOwnerError,
     ForbiddenError,
     MemberNotFoundError,
     UserNotFoundError,
@@ -13,12 +13,17 @@ from app.core.permissions import has_workspace_role
 from app.models.user import User, UserRole
 from app.models.workspace import Workspace, WorkspaceMember, WorkspaceRole
 from app.repositories.task_repository import TaskRepository
-from app.services.transaction import transaction
 from app.repositories.user_repository import UserRepository
 from app.repositories.workspace_member_repository import WorkspaceMemberRepository
 from app.repositories.workspace_repository import WorkspaceRepository
 from app.schemas.common import Page, Pagination
-from app.schemas.workspace import MemberInvite, MemberUpdate, WorkspaceCreate, WorkspaceUpdate
+from app.schemas.workspace import (
+    MemberInvite,
+    MemberUpdate,
+    WorkspaceCreate,
+    WorkspaceUpdate,
+)
+from app.services.transaction import transaction
 
 
 class WorkspaceService:

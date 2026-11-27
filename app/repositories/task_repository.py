@@ -3,11 +3,11 @@ from collections.abc import Sequence
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.project import Project
-from app.schemas.common import Pagination
 from app.core.enums import TaskPriority, TaskStatus
+from app.models.project import Project
 from app.models.task import Task
 from app.repositories.transactional import TransactionalRepository
+from app.schemas.common import Pagination
 
 
 class TaskRepository(TransactionalRepository[Task]):
