@@ -1,3 +1,4 @@
+import asyncio
 import uuid
 from datetime import UTC, datetime, timedelta
 
@@ -22,6 +23,16 @@ def verify_password(plain: str, hashed: str) -> bool:
         return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
     except ValueError:
         return False
+
+
+async def hash_password_async(plain: str) -> str:
+    """Bcrypt hashing tốn CPU; chạy qua thread pool để không chặn asyncio event loop."""
+    return await asyncio.to_thread(hash_password, plain)
+
+
+async def verify_password_async(plain: str, hashed: str) -> bool:
+    """Bcrypt verification tốn CPU; chạy qua thread pool để không chặn asyncio event loop."""
+    return await asyncio.to_thread(verify_password, plain, hashed)
 
 
 def _create_token(subject: str, token_type: str, expires_delta: timedelta) -> str:
@@ -58,9 +69,9 @@ def decode_token(token: str, expected_type: str) -> dict:
             token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
     except jwt.ExpiredSignatureError:
-        raise TokenError(messages.TOKEN_EXPIRED)
+        raise TokenError(messages.TOKEN_EXPIRED) from None
     except jwt.InvalidTokenError:
-        raise TokenError(messages.TOKEN_INVALID)
+        raise TokenError(messages.TOKEN_INVALID) from None
 
     if payload.get("type") != expected_type:
         raise TokenError(messages.TOKEN_WRONG_TYPE)

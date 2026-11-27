@@ -19,7 +19,12 @@ class BaseRepository(Generic[ModelT]):
         return await self.session.get(self.model, obj_id)
 
     async def get_all(self, skip: int = 0, limit: int = 10) -> Sequence[ModelT]:
-        stmt = select(self.model).order_by(self.model.id).offset(skip).limit(limit)
+        stmt = (
+            select(self.model)
+            .order_by(getattr(self.model, "id"))  # noqa: B009
+            .offset(skip)
+            .limit(limit)
+        )
         result = await self.session.execute(stmt)
         return result.scalars().all()
 
@@ -31,29 +36,25 @@ class BaseRepository(Generic[ModelT]):
     async def create(self, data: dict) -> ModelT:
         obj = self.model(**data)
         self.session.add(obj)
+        return await self._save(obj)
+
+    async def _persist(self) -> None:
         try:
             await self.session.commit()
         except IntegrityError:
             await self.session.rollback()
             raise
+
+    async def _save(self, obj: ModelT) -> ModelT:
+        await self._persist()
         await self.session.refresh(obj)
         return obj
 
     async def update(self, obj: ModelT, data: dict) -> ModelT:
         for key, value in data.items():
             setattr(obj, key, value)
-        try:
-            await self.session.commit()
-        except IntegrityError:
-            await self.session.rollback()
-            raise
-        await self.session.refresh(obj)
-        return obj
+        return await self._save(obj)
 
     async def delete(self, obj: ModelT) -> None:
         await self.session.delete(obj)
-        try:
-            await self.session.commit()
-        except IntegrityError:
-            await self.session.rollback()
-            raise
+        await self._persist()

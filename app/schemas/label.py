@@ -31,7 +31,6 @@ class LabelUpdate(BaseModel):
     color: NonNull[HexColor] = None
 
 
-
 class LabelRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

@@ -142,10 +142,13 @@ async def test_deleting_workspace_removes_its_projects(
 ):
     p = (await make_project(client, team)).json()
     other_ws = (await create_workspace(team["owner"], "Other workspace")).json()
-    other = (await client.post(
-        f"{WS}/{other_ws['id']}/projects",
-        headers=bearer(team["owner"]), json={"name": "Keep me"},
-    )).json()
+    other = (
+        await client.post(
+            f"{WS}/{other_ws['id']}/projects",
+            headers=bearer(team["owner"]),
+            json={"name": "Keep me"},
+        )
+    ).json()
     deleted = await client.delete(f"{WS}/{team['ws']}", headers=bearer(team["owner"]))
     assert deleted.status_code == 204
     async with session_factory() as session:

@@ -264,11 +264,14 @@ def test_env_file_path_is_independent_of_cwd(tmp_path, monkeypatch):
     assert Settings().DATABASE_URL == DATABASE
 
 
-@pytest.mark.parametrize("password", ["taskhub-dev-only", "replace-me", "replace%2Dme", "CHANGE-ME"])
+@pytest.mark.parametrize(
+    "password", ["taskhub-dev-only", "replace-me", "replace%2Dme", "CHANGE-ME"]
+)
 def test_production_rejects_sample_database_password(password):
     with pytest.raises(ValidationError, match="DATABASE_URL password") as error:
         configure(
-            APP_ENV="prod", SECRET_KEY=secrets.token_urlsafe(48),
+            APP_ENV="prod",
+            SECRET_KEY=secrets.token_urlsafe(48),
             DATABASE_URL=f"postgresql+asyncpg://user:{password}@db/taskhub",
             REDIS_URL="redis://redis/0",
         )

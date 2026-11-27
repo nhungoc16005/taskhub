@@ -1,3 +1,5 @@
+from typing import Literal
+
 from app.core.enums import AppEnv
 
 EMAIL_MAX_LENGTH = 255
@@ -30,7 +32,7 @@ DEFAULT_REDIS_URL = "redis://localhost:6379/0"
 DEFAULT_CACHE_TTL_SECONDS = 60
 TASK_CACHE_PREFIX = "taskhub:tasks:v1"
 CACHE_VERSION_BITS = 48
-DEFAULT_LOG_LEVEL = "INFO"
+DEFAULT_LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
 REQUEST_ID_HEADER = "X-Request-ID"
 MAX_REQUEST_ID_LENGTH = 128
 REQUEST_ID_PATTERN = rf"^[A-Za-z0-9._-]{{1,{MAX_REQUEST_ID_LENGTH}}}$"

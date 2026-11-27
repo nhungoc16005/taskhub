@@ -15,10 +15,14 @@ async def test_create_workspace_makes_creator_owner(
     members = (
         await client.get(f"{WS}/{ws['id']}/members", headers=bearer(tokens))
     ).json()
-    assert members == [{
-        "user_id": user["id"], "role": "OWNER",
-        "email": user["email"], "full_name": user["full_name"],
-    }]
+    assert members == [
+        {
+            "user_id": user["id"],
+            "role": "OWNER",
+            "email": user["email"],
+            "full_name": user["full_name"],
+        }
+    ]
 
 
 async def test_list_returns_only_my_workspaces(client, make_user, create_workspace):
@@ -111,8 +115,10 @@ async def test_invite_member_flow(client, make_user, create_workspace, invite):
     r = await invite(owner, ws["id"], "GUEST@x.com", "EDITOR")
     assert r.status_code == 201
     expected = {
-        "user_id": guest["id"], "role": "EDITOR",
-        "email": guest["email"], "full_name": guest["full_name"],
+        "user_id": guest["id"],
+        "role": "EDITOR",
+        "email": guest["email"],
+        "full_name": guest["full_name"],
     }
     assert r.json() == expected
     members = await client.get(f"{WS}/{ws['id']}/members", headers=bearer(owner))

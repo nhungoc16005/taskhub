@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import Date, DateTime, Enum, ForeignKey, String, Text, func
+from sqlalchemy import Date, DateTime, Enum, ForeignKey, Index, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.enums import TaskPriority, TaskStatus
@@ -17,6 +17,15 @@ if TYPE_CHECKING:
 
 class Task(Base):
     __tablename__ = "tasks"
+    __table_args__ = (
+        Index(
+            "ix_tasks_project_status_priority_id",
+            "project_id",
+            "status",
+            "priority",
+            "id",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     project_id: Mapped[int] = mapped_column(
@@ -27,7 +36,9 @@ class Task(Base):
         default=None,
         index=True,
     )
-    created_by: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), index=True)
+    created_by: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), index=True
+    )
     title: Mapped[str] = mapped_column(String(255))
     description: Mapped[str | None] = mapped_column(Text, default=None)
     status: Mapped[TaskStatus] = mapped_column(
