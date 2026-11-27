@@ -1,0 +1,11 @@
+# Use with: docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build
+services:
+  app:
+    environment:
+      APP_ENV: prod
+      SECRET_KEY: ${TASKHUB_SECRET_KEY:?required}
+      DATABASE_URL: ${TASKHUB_DATABASE_URL:?required}
+      REDIS_URL: ${TASKHUB_REDIS_URL:?required}
+  db:
+    environment:
+      POSTGRES_PASSWORD: ${TASKHUB_POSTGRES_PASSWORD:?required}
