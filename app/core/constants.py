@@ -1,3 +1,5 @@
+from app.core.enums import AppEnv
+
 EMAIL_MAX_LENGTH = 255
 FULL_NAME_MIN_LENGTH = 1
 FULL_NAME_MAX_LENGTH = 255
@@ -23,3 +25,25 @@ LABEL_NAME_MAX_LENGTH = 100
 DEFAULT_LABEL_COLOR = "#808080"
 HEX_COLOR_PATTERN = r"^#[0-9A-Fa-f]{6}$"
 COMMENT_MAX_LENGTH = 2000
+
+DEFAULT_REDIS_URL = "redis://localhost:6379/0"
+DEFAULT_CACHE_TTL_SECONDS = 60
+TASK_CACHE_PREFIX = "taskhub:tasks:v1"
+CACHE_VERSION_BITS = 48
+DEFAULT_LOG_LEVEL = "INFO"
+REQUEST_ID_HEADER = "X-Request-ID"
+MAX_REQUEST_ID_LENGTH = 128
+REQUEST_ID_PATTERN = rf"^[A-Za-z0-9._-]{{1,{MAX_REQUEST_ID_LENGTH}}}$"
+DEFAULT_APP_ENV = AppEnv.DEV
+ENV_FILES = {env: f".env.{env.value}" for env in AppEnv}
+PRODUCTION_SECRET_MIN_UNIQUE_CHARACTERS = 12
+SAMPLE_SECRET_MARKERS = (
+    "change-me",
+    "changeme",
+    "replace-me",
+    "your-secret",
+    "dev-only",
+    "test-secret",
+)
+API_TITLE = "TaskHub API"
+API_VERSION = "0.7.0"

@@ -1,10 +1,12 @@
+from typing import ClassVar
+
 from app.core import messages
 
 
 class AppError(Exception):
     status_code = 500
-    message = "Internal server error"
-    headers: dict[str, str] | None = None
+    message = messages.INTERNAL_SERVER_ERROR
+    headers: ClassVar[dict[str, str] | None] = None
 
     def __init__(self, message: str | None = None):
         self.message = message or self.message
@@ -31,7 +33,7 @@ class UserInUseError(AppError):
 
 class UnauthorizedError(AppError):
     status_code = 401
-    headers = {"WWW-Authenticate": "Bearer"}
+    headers: ClassVar[dict[str, str] | None] = {"WWW-Authenticate": "Bearer"}
 
 
 class InvalidCredentialsError(UnauthorizedError):

@@ -3,11 +3,11 @@ from collections.abc import Sequence
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.project import Project
-from app.schemas.common import Pagination
 from app.core.enums import TaskPriority, TaskStatus
+from app.models.project import Project
 from app.models.task import Task
 from app.repositories.transactional import TransactionalRepository
+from app.schemas.common import Pagination
 
 
 class TaskRepository(TransactionalRepository[Task]):
@@ -63,11 +63,17 @@ class TaskRepository(TransactionalRepository[Task]):
         result = await self.session.execute(stmt)
         return result.scalar_one()
 
-    async def unassign_in_workspace(self, workspace_id: int, user_id: int) -> None:
-        await self.session.execute(
-            update(Task).where(
-                Task.project_id.in_(select(Project.id).where(Project.workspace_id == workspace_id)),
+    async def unassign_in_workspace(self, workspace_id: int, user_id: int) -> set[int]:
+        result = await self.session.execute(
+            update(Task)
+            .where(
+                Task.project_id.in_(
+                    select(Project.id).where(Project.workspace_id == workspace_id)
+                ),
                 Task.assignee_id == user_id,
-            ).values(assignee_id=None)
+            )
+            .values(assignee_id=None)
+            .returning(Task.project_id)
         )
         await self.session.flush()
+        return set(result.scalars().all())

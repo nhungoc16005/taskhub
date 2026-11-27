@@ -2,12 +2,14 @@ from collections.abc import Callable
 from functools import partial
 from typing import Annotated
 
-from fastapi import Depends
-from fastapi.security import OAuth2PasswordBearer
+from fastapi import Depends, Request
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core import messages
+from app.core.cache import TaskCache
 from app.core.database import get_db
-from app.core.exceptions import ForbiddenError
+from app.core.exceptions import ForbiddenError, UnauthorizedError
 from app.models.comment import Comment
 from app.models.label import Label
 from app.models.project import Project
@@ -24,6 +26,7 @@ from app.repositories.workspace_member_repository import WorkspaceMemberReposito
 from app.repositories.workspace_repository import WorkspaceRepository
 from app.services.auth_service import AuthService
 from app.services.comment_service import CommentService
+from app.services.email_service import EmailService
 from app.services.label_service import LabelService
 from app.services.project_service import ProjectService
 from app.services.resource_policy import AuthorizedResource
@@ -31,9 +34,28 @@ from app.services.task_service import TaskService
 from app.services.user_service import UserService
 from app.services.workspace_service import WorkspaceService
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+bearer_scheme = HTTPBearer(
+    scheme_name="BearerAuth",
+    bearerFormat="JWT",
+    auto_error=False,
+    description="Đăng nhập tại /api/v1/auth/login, sau đó dán access_token vào đây (không thêm tiền tố Bearer).",
+)
 
 DbSession = Annotated[AsyncSession, Depends(get_db)]
+
+
+def get_task_cache(request: Request) -> TaskCache:
+    return request.app.state.task_cache
+
+
+TaskCacheDep = Annotated[TaskCache, Depends(get_task_cache)]
+
+
+def get_email_service() -> EmailService:
+    return EmailService()
+
+
+EmailServiceDep = Annotated[EmailService, Depends(get_email_service)]
 
 
 def get_user_repo(db: DbSession) -> UserRepository:
@@ -62,10 +84,12 @@ AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
 
 
 async def get_current_user(
-    token: Annotated[str, Depends(oauth2_scheme)],
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
     service: AuthServiceDep,
 ) -> User:
-    return await service.get_current_user(token)
+    if credentials is None:
+        raise UnauthorizedError(messages.COULD_NOT_VALIDATE)
+    return await service.get_current_user(credentials.credentials)
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
@@ -86,10 +110,14 @@ AdminUser = Annotated[User, Depends(require_admin)]
 def get_workspace_service(
     db: DbSession,
     user_repo: Annotated[UserRepository, Depends(get_user_repo)],
+    cache: TaskCacheDep,
 ) -> WorkspaceService:
     return WorkspaceService(
-        WorkspaceRepository(db), WorkspaceMemberRepository(db),
-        user_repo, TaskRepository(db),
+        WorkspaceRepository(db),
+        WorkspaceMemberRepository(db),
+        user_repo,
+        TaskRepository(db),
+        cache,
     )
 
 
@@ -118,6 +146,7 @@ def require_workspace_role(required: WorkspaceRole):
 
 def require_role(loader, required: WorkspaceRole, *, writable: bool = False):
     """Apply one role/write policy to a typed resource loader dependency."""
+
     async def dependency(load: Annotated[Callable, Depends(loader)]):
         return await load(required, writable=writable)
 
@@ -156,8 +185,13 @@ def get_task_service(
     db: DbSession,
     project_service: ProjectServiceDep,
     workspace_service: WorkspaceServiceDep,
+    cache: TaskCacheDep,
+    users: UserServiceDep,
+    email: EmailServiceDep,
 ) -> TaskService:
-    return TaskService(TaskRepository(db), project_service, workspace_service)
+    return TaskService(
+        TaskRepository(db), project_service, workspace_service, cache, users, email
+    )
 
 
 TaskServiceDep = Annotated[TaskService, Depends(get_task_service)]
