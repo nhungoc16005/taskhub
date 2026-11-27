@@ -25,6 +25,7 @@ from app.schemas.workspace import (
     WorkspaceUpdate,
 )
 from app.services.transaction import transaction
+from app.services.updates import update_from_schema
 
 
 class WorkspaceService:
@@ -81,7 +82,7 @@ class WorkspaceService:
         )
 
     async def update(self, workspace: Workspace, data: WorkspaceUpdate) -> Workspace:
-        return await self.repo.update(workspace, data.model_dump(exclude_unset=True))
+        return await update_from_schema(self.repo, workspace, data)
 
     async def delete(self, workspace: Workspace) -> None:
         await self.repo.delete(workspace)

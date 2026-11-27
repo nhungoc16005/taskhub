@@ -19,6 +19,7 @@ from app.schemas.label import LabelCreate, LabelUpdate
 from app.services.project_service import ProjectService
 from app.services.resource_policy import AuthorizedResource, ProjectResourcePolicy
 from app.services.transaction import transaction
+from app.services.updates import update_from_schema
 
 
 class LabelService:
@@ -71,9 +72,7 @@ class LabelService:
     async def update(self, label: Label, data: LabelUpdate) -> Label:
         try:
             async with transaction(self.repo.session):
-                return await self.repo.update(
-                    label, data.model_dump(exclude_unset=True)
-                )
+                return await update_from_schema(self.repo, label, data)
         except IntegrityError as error:
             self._raise_name_conflict(error)
             raise

@@ -10,6 +10,8 @@ from app.models.workspace import Workspace, WorkspaceRole
 from app.repositories.project_repository import ProjectRepository
 from app.schemas.common import Page, Pagination
 from app.schemas.project import ProjectCreate, ProjectUpdate
+from app.services.resource_policy import resolve_nested_resource
+from app.services.updates import update_from_schema
 from app.services.workspace_service import WorkspaceService
 
 
@@ -27,25 +29,27 @@ class ProjectService:
         writable: bool = False,
     ) -> Project:
         """Quyền trên project = quyền của user trong workspace chứa project đó."""
-        project = await self.repo.get(project_id)
-        if project is None:
-            raise ProjectNotFoundError()
-        try:
-            await self.workspace_service.get_with_role(
-                user, project.workspace_id, required
-            )
-        except WorkspaceNotFoundError:
-            raise ProjectNotFoundError() from None
+        project, _ = await resolve_nested_resource(
+            self.repo.get,
+            project_id,
+            ProjectNotFoundError,
+            lambda p: self.workspace_service.get_with_role(
+                user, p.workspace_id, required
+            ),
+            WorkspaceNotFoundError,
+        )
         if writable:
             self.ensure_writable(project)
         return project
 
     @staticmethod
     def ensure_writable(project: Project) -> None:
+        """Kiểm tra dự án có ở trạng thái cho phép chỉnh sửa nội dung hay không."""
         if project.status == ProjectStatus.ARCHIVED:
             raise ProjectArchivedError()
 
     async def require_owner(self, user: User, project: Project) -> None:
+        """Kiểm tra quyền OWNER trên workspace chứa dự án."""
         await self.workspace_service.get_with_role(
             user, project.workspace_id, WorkspaceRole.OWNER
         )
@@ -69,7 +73,7 @@ class ProjectService:
         )
 
     async def update(self, project: Project, data: ProjectUpdate) -> Project:
-        return await self.repo.update(project, data.model_dump(exclude_unset=True))
+        return await update_from_schema(self.repo, project, data)
 
     async def archive(self, project: Project) -> Project:
         return await self.repo.update(project, {"status": ProjectStatus.ARCHIVED})

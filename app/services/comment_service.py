@@ -6,6 +6,7 @@ from app.models.workspace import WorkspaceRole
 from app.repositories.comment_repository import CommentRepository
 from app.schemas.comment import CommentCreate
 from app.schemas.common import Page, Pagination
+from app.services.resource_policy import resolve_nested_resource
 from app.services.task_service import TaskService
 from app.services.transaction import transaction
 
@@ -29,15 +30,15 @@ class CommentService:
 
     async def get_deletable(self, user: User, comment_id: int) -> Comment:
         """Tác giả xóa comment của mình; OWNER/ADMIN xóa được comment của người khác."""
-        comment = await self.repo.get(comment_id)
-        if comment is None:
-            raise CommentNotFoundError()
-        try:
-            task = await self.task_service.get_with_role(
-                user, comment.task_id, WorkspaceRole.EDITOR, writable=True
-            )
-        except TaskNotFoundError:
-            raise CommentNotFoundError() from None
+        comment, task = await resolve_nested_resource(
+            self.repo.get,
+            comment_id,
+            CommentNotFoundError,
+            lambda c: self.task_service.get_with_role(
+                user, c.task_id, WorkspaceRole.EDITOR, writable=True
+            ),
+            TaskNotFoundError,
+        )
 
         await self.task_service.policy.require_author_or_owner(
             user, comment.author_id, task.project
