@@ -77,7 +77,9 @@ class TaskCache:
             )
             digest = hashlib.sha256(filters.encode()).hexdigest()
             key = f"{TASK_CACHE_PREFIX}:{project_id}:{version}:{digest}"
-            return CacheLookup(key, await self.redis.get(key))
+            raw = await self.redis.get(key)
+            val = raw.decode("utf-8") if isinstance(raw, bytes) else raw
+            return CacheLookup(key, val)
         except (RedisError, OSError):
             logger.warning(messages.CACHE_UNAVAILABLE, "read")
             return CacheLookup()

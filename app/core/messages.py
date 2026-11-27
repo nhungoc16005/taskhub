@@ -54,4 +54,6 @@ DUE_DATE_IN_PAST = "due_date cannot be in the past"
 ACCESS_LOG = "request_id=%s method=%s path=%s status=%s duration_ms=%.2f"
 ASSIGNMENT_EMAIL_LOG = "Assignment email user_id=%s task_id=%s"
 APP_ENV_MISMATCH = "APP_ENV in the selected file must match the explicit environment"
-PRODUCTION_DATABASE_PASSWORD = "DATABASE_URL password in prod must not be a sample password"
+PRODUCTION_DATABASE_PASSWORD = (
+    "DATABASE_URL password in prod must not be a sample password"
+)
