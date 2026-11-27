@@ -73,9 +73,7 @@ class TaskService:
     ) -> None:
         if recipient is not None:
             # Pass plain values; background delivery must not access request-scoped ORM/session.
-            background.add_task(
-                self.email.deliver_assignment, recipient, task.id
-            )
+            background.add_task(self.email.deliver_assignment, recipient, task.id)
 
     async def create(
         self,

@@ -23,9 +23,7 @@ class CommentService:
 
     async def list_by_task(self, task: Task, pagination: Pagination) -> Page[Comment]:
         return pagination.page(
-            items=await self.repo.list_by_task(
-                task.id, pagination
-            ),
+            items=await self.repo.list_by_task(task.id, pagination),
             total=await self.repo.count_by_task(task.id),
         )
 
@@ -41,7 +39,9 @@ class CommentService:
         except TaskNotFoundError:
             raise CommentNotFoundError() from None
 
-        await self.task_service.policy.require_author_or_owner(user, comment.author_id, task.project)
+        await self.task_service.policy.require_author_or_owner(
+            user, comment.author_id, task.project
+        )
         return comment
 
     async def delete(self, comment: Comment) -> None:

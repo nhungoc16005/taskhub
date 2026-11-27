@@ -19,7 +19,12 @@ class ProjectService:
         self.workspace_service = workspace_service
 
     async def get_with_role(
-        self, user: User, project_id: int, required: WorkspaceRole, *, writable: bool = False
+        self,
+        user: User,
+        project_id: int,
+        required: WorkspaceRole,
+        *,
+        writable: bool = False,
     ) -> Project:
         """Quyền trên project = quyền của user trong workspace chứa project đó."""
         project = await self.repo.get(project_id)

@@ -27,26 +27,42 @@ class LabelService:
         self.policy = ProjectResourcePolicy(project_service)
 
     async def get_with_role(
-        self, user: User, label_id: int, required: WorkspaceRole, *, writable: bool = False
+        self,
+        user: User,
+        label_id: int,
+        required: WorkspaceRole,
+        *,
+        writable: bool = False,
     ) -> AuthorizedResource[Label]:
         return await self.policy.load(
-            self.repo.get, label_id, user, required, LabelNotFoundError, writable=writable
+            self.repo.get,
+            label_id,
+            user,
+            required,
+            LabelNotFoundError,
+            writable=writable,
         )
 
     async def create(self, project: Project, data: LabelCreate) -> Label:
         try:
             async with transaction(self.repo.session):
-                return await self.repo.create({**data.model_dump(), "project_id": project.id})
+                return await self.repo.create(
+                    {**data.model_dump(), "project_id": project.id}
+                )
         except IntegrityError as error:
             self._raise_name_conflict(error)
             raise
 
     @staticmethod
     def _raise_name_conflict(error: IntegrityError) -> None:
-        if is_unique_violation(error, "uq_labels_project_name", "labels.project_id, labels.name"):
+        if is_unique_violation(
+            error, "uq_labels_project_name", "labels.project_id, labels.name"
+        ):
             raise LabelNameConflictError() from None
 
-    async def list_by_project(self, project: Project, pagination: Pagination) -> Page[Label]:
+    async def list_by_project(
+        self, project: Project, pagination: Pagination
+    ) -> Page[Label]:
         return pagination.page(
             await self.repo.list_by_project(project.id, pagination),
             await self.repo.count_by_project(project.id),
@@ -55,7 +71,9 @@ class LabelService:
     async def update(self, label: Label, data: LabelUpdate) -> Label:
         try:
             async with transaction(self.repo.session):
-                return await self.repo.update(label, data.model_dump(exclude_unset=True))
+                return await self.repo.update(
+                    label, data.model_dump(exclude_unset=True)
+                )
         except IntegrityError as error:
             self._raise_name_conflict(error)
             raise
@@ -84,7 +102,9 @@ class LabelService:
             async with transaction(self.repo.session):
                 await self.repo.attach(task.id, label.id)
         except IntegrityError as error:
-            if is_unique_violation(error, "task_labels_pkey", "task_labels.task_id, task_labels.label_id"):
+            if is_unique_violation(
+                error, "task_labels_pkey", "task_labels.task_id, task_labels.label_id"
+            ):
                 raise LabelAlreadyAttachedError() from None
             # A concurrent delete can invalidate the FK after authorization.
             raise ResourceChangedError() from None
