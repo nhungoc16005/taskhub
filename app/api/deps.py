@@ -1,6 +1,6 @@
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from functools import partial
-from typing import Annotated
+from typing import Annotated, Protocol, TypeVar
 
 from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -133,7 +133,9 @@ def get_project_service(
 ProjectServiceDep = Annotated[ProjectService, Depends(get_project_service)]
 
 
-def require_workspace_role(required: WorkspaceRole):
+def require_workspace_role(
+    required: WorkspaceRole,
+) -> Callable[[int, User, WorkspaceService], Awaitable[Workspace]]:
     """Tạo dependency: đọc `workspace_id` từ path và kiểm tra quyền tối thiểu."""
 
     async def dependency(
@@ -144,16 +146,35 @@ def require_workspace_role(required: WorkspaceRole):
     return dependency
 
 
-def require_role(loader, required: WorkspaceRole, *, writable: bool = False):
+ResourceT = TypeVar("ResourceT")
+ResourceCo = TypeVar("ResourceCo", covariant=True)
+
+
+class ResourceLoader(Protocol[ResourceCo]):
+    def __call__(
+        self, required: WorkspaceRole, *, writable: bool = False
+    ) -> Awaitable[ResourceCo]: ...
+
+
+def require_role(
+    loader: Callable[..., Awaitable[ResourceLoader[ResourceT]]],
+    required: WorkspaceRole,
+    *,
+    writable: bool = False,
+) -> Callable[[ResourceLoader[ResourceT]], Awaitable[ResourceT]]:
     """Apply one role/write policy to a typed resource loader dependency."""
 
-    async def dependency(load: Annotated[Callable, Depends(loader)]):
+    async def dependency(
+        load: Annotated[ResourceLoader[ResourceT], Depends(loader)],
+    ) -> ResourceT:
         return await load(required, writable=writable)
 
     return dependency
 
 
-async def load_project(project_id: int, user: CurrentUser, service: ProjectServiceDep):
+async def load_project(
+    project_id: int, user: CurrentUser, service: ProjectServiceDep
+) -> ResourceLoader[Project]:
     return partial(service.get_with_role, user, project_id)
 
 
@@ -213,11 +234,15 @@ def get_comment_service(db: DbSession, task_service: TaskServiceDep) -> CommentS
 CommentServiceDep = Annotated[CommentService, Depends(get_comment_service)]
 
 
-async def load_task(task_id: int, user: CurrentUser, service: TaskServiceDep):
+async def load_task(
+    task_id: int, user: CurrentUser, service: TaskServiceDep
+) -> ResourceLoader[AuthorizedResource[Task]]:
     return partial(service.get_with_role, user, task_id)
 
 
-async def load_label(label_id: int, user: CurrentUser, service: LabelServiceDep):
+async def load_label(
+    label_id: int, user: CurrentUser, service: LabelServiceDep
+) -> ResourceLoader[AuthorizedResource[Label]]:
     return partial(service.get_with_role, user, label_id)
 
 
