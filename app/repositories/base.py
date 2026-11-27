@@ -19,7 +19,12 @@ class BaseRepository(Generic[ModelT]):
         return await self.session.get(self.model, obj_id)
 
     async def get_all(self, skip: int = 0, limit: int = 10) -> Sequence[ModelT]:
-        stmt = select(self.model).order_by(self.model.id).offset(skip).limit(limit)
+        stmt = (
+            select(self.model)
+            .order_by(getattr(self.model, "id"))  # noqa: B009
+            .offset(skip)
+            .limit(limit)
+        )
         result = await self.session.execute(stmt)
         return result.scalars().all()
 

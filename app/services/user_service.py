@@ -28,7 +28,7 @@ class UserService:
             return await self.repo.create(user_data)
         except IntegrityError:
             # 2 request đăng ký cùng lúc: request sau vi phạm UNIQUE(email)
-            raise EmailAlreadyExistsError()
+            raise EmailAlreadyExistsError() from None
 
     async def get_user(self, user_id: int) -> User:
         user = await self.repo.get(user_id)
@@ -52,4 +52,4 @@ class UserService:
             await self.repo.delete(user)
         except IntegrityError:
             # user còn workspace/task tham chiếu tới -> vi phạm FK
-            raise UserInUseError()
+            raise UserInUseError() from None
